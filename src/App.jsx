@@ -34,7 +34,7 @@ async function insertStudent(student) {
       first_name: student.firstName,
       last_name: student.lastName,
       email: student.email,
-      whatsapp: student.whatsapp || null,
+      whatsapp: student.whatsappNumber ? `${student.countryCode || "+33"}${student.whatsappNumber.replace(/^0/, "")}` : null,
       semester: student.semester,
       school: student.destination.school,
       city: student.destination.city,
@@ -203,7 +203,7 @@ function getMatches(query) {
 }
 
 function formatPhone(raw) {
-  return raw.replace(/\s/g, "").replace(/^0/, "+33");
+  return raw.replace(/\s/g, "");
 }
 
 function DestinationSearch({ value, onChange, onSelect }) {
@@ -645,8 +645,9 @@ export default function ExchangeMatch() {
     if (!form.destination) {
       setError("Sélectionne une destination dans la liste."); return;
     }
-    if (!form.email.includes("@")) {
-      setError("Adresse email invalide."); return;
+    const emailLower = form.email.toLowerCase().trim();
+    if (!emailLower.endsWith("@edu.em-lyon.com")) {
+      setError("Seuls les étudiants emlyon peuvent s'inscrire. Utilise ton adresse @edu.em-lyon.com."); return;
     }
     setLoading(true);
     try {
@@ -805,27 +806,108 @@ export default function ExchangeMatch() {
 
           <EmailInput placeholder="prenom.nom@edu.em-lyon.com" value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} />
 
-          <input
-            type="tel"
-            placeholder="Numéro WhatsApp (ex: 06 12 34 56 78)"
-            value={form.whatsapp}
-            onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))}
-          />
+          <div>
+            <p style={{ margin: "0 0 6px", fontSize: 13, color: "#6b6b6b" }}>WhatsApp (optionnel)</p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <select
+                value={form.countryCode || "+33"}
+                onChange={e => setForm(f => ({ ...f, countryCode: e.target.value }))}
+                style={{
+                  height: 42, padding: "0 8px", border: "0.5px solid rgba(0,0,0,0.25)",
+                  borderRadius: 8, background: "#fff", fontSize: 14, color: "#1a1a1a",
+                  fontFamily: "inherit", flexShrink: 0, width: 110, cursor: "pointer"
+                }}
+              >
+                <option value="+33">🇫🇷 +33</option>
+                <option value="+1">🇺🇸 +1</option>
+                <option value="+44">🇬🇧 +44</option>
+                <option value="+49">🇩🇪 +49</option>
+                <option value="+34">🇪🇸 +34</option>
+                <option value="+39">🇮🇹 +39</option>
+                <option value="+31">🇳🇱 +31</option>
+                <option value="+32">🇧🇪 +32</option>
+                <option value="+41">🇨🇭 +41</option>
+                <option value="+46">🇸🇪 +46</option>
+                <option value="+47">🇳🇴 +47</option>
+                <option value="+45">🇩🇰 +45</option>
+                <option value="+358">🇫🇮 +358</option>
+                <option value="+351">🇵🇹 +351</option>
+                <option value="+48">🇵🇱 +48</option>
+                <option value="+55">🇧🇷 +55</option>
+                <option value="+52">🇲🇽 +52</option>
+                <option value="+54">🇦🇷 +54</option>
+                <option value="+56">🇨🇱 +56</option>
+                <option value="+57">🇨🇴 +57</option>
+                <option value="+51">🇵🇪 +51</option>
+                <option value="+598">🇺🇾 +598</option>
+                <option value="+86">🇨🇳 +86</option>
+                <option value="+81">🇯🇵 +81</option>
+                <option value="+82">🇰🇷 +82</option>
+                <option value="+91">🇮🇳 +91</option>
+                <option value="+65">🇸🇬 +65</option>
+                <option value="+60">🇲🇾 +60</option>
+                <option value="+66">🇹🇭 +66</option>
+                <option value="+84">🇻🇳 +84</option>
+                <option value="+62">🇮🇩 +62</option>
+                <option value="+63">🇵🇭 +63</option>
+                <option value="+971">🇦🇪 +971</option>
+                <option value="+212">🇲🇦 +212</option>
+                <option value="+221">🇸🇳 +221</option>
+                <option value="+20">🇪🇬 +20</option>
+                <option value="+7">🇷🇺 +7</option>
+                <option value="+380">🇺🇦 +380</option>
+                <option value="+420">🇨🇿 +420</option>
+                <option value="+36">🇭🇺 +36</option>
+                <option value="+40">🇷🇴 +40</option>
+                <option value="+359">🇧🇬 +359</option>
+                <option value="+385">🇭🇷 +385</option>
+                <option value="+386">🇸🇮 +386</option>
+                <option value="+421">🇸🇰 +421</option>
+                <option value="+370">🇱🇹 +370</option>
+                <option value="+371">🇱🇻 +371</option>
+                <option value="+372">🇪🇪 +372</option>
+                <option value="+30">🇬🇷 +30</option>
+                <option value="+90">🇹🇷 +90</option>
+                <option value="+972">🇮🇱 +972</option>
+                <option value="+880">🇧🇩 +880</option>
+                <option value="+94">🇱🇰 +94</option>
+                <option value="+977">🇳🇵 +977</option>
+                <option value="+855">🇰🇭 +855</option>
+                <option value="+7">🇰🇿 +7</option>
+                <option value="+998">🇺🇿 +998</option>
+                <option value="+61">🇦🇺 +61</option>
+                <option value="+64">🇳🇿 +64</option>
+                <option value="+27">🇿🇦 +27</option>
+                <option value="+234">🇳🇬 +234</option>
+                <option value="+254">🇰🇪 +254</option>
+                <option value="+250">🇷🇼 +250</option>
+              </select>
+              <input
+                type="tel"
+                placeholder="Numéro (sans indicatif)"
+                value={form.whatsappNumber || ""}
+                onChange={e => setForm(f => ({ ...f, whatsappNumber: e.target.value }))}
+                style={{ flex: 1 }}
+              />
+            </div>
+          </div>
 
           <div>
-            <p style={{ margin: "0 0 6px", fontSize: 13, color: "var(--color-text-secondary)" }}>Semestre</p>
+            <p style={{ margin: "0 0 8px", fontSize: 13, color: "#6b6b6b" }}>Semestre</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-              {[["fall", "Fall"], ["spring", "Spring"], ["both", "Les deux"]].map(([val, label]) => (
+              {[["fall", "🍂 Fall"], ["spring", "🌸 Spring"], ["both", "Les deux"]].map(([val, label]) => (
                 <button
                   key={val}
                   onClick={() => setForm(f => ({ ...f, semester: val }))}
                   style={{
-                    padding: "8px",
-                    fontSize: 13,
-                    fontWeight: form.semester === val ? 500 : 400,
-                    background: form.semester === val ? "var(--color-background-info)" : "transparent",
-                    color: form.semester === val ? "var(--color-text-info)" : "var(--color-text-secondary)",
-                    border: form.semester === val ? "0.5px solid var(--color-border-info)" : "0.5px solid var(--color-border-tertiary)",
+                    padding: "12px 8px",
+                    fontSize: 14,
+                    fontWeight: form.semester === val ? 600 : 400,
+                    background: form.semester === val ? "#1a1a1a" : "transparent",
+                    color: form.semester === val ? "#fff" : "#6b6b6b",
+                    border: form.semester === val ? "0.5px solid #1a1a1a" : "0.5px solid rgba(0,0,0,0.15)",
+                    borderRadius: 8,
+                    transition: "all 0.15s"
                   }}
                 >
                   {label}
