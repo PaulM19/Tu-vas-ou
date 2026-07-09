@@ -1,5 +1,48 @@
 import { useState, useRef, useEffect } from "react";
 
+const SUPABASE_URL = "https://fckolgfthpkjmtviysba.supabase.co";
+const SUPABASE_KEY = "sb_publishable_nX8bK2lPKzaRBWzuGut5JQ_yyiSgE-8";
+
+async function sbFetch(path, options = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": options.prefer || "",
+      ...options.headers,
+    },
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+async function getStudentsFromDB() {
+  return await sbFetch("students?select=*&order=created_at.asc") || [];
+}
+
+async function insertStudent(student) {
+  return await sbFetch("students", {
+    method: "POST",
+    prefer: "return=representation",
+    body: JSON.stringify({
+      first_name: student.firstName,
+      last_name: student.lastName,
+      email: student.email,
+      whatsapp: student.whatsapp || null,
+      semester: student.semester,
+      school: student.destination.school,
+      city: student.destination.city,
+      country: student.destination.country,
+    }),
+  });
+}
+
 const DESTINATIONS = [
   { country: "Allemagne", city: "Francfort", school: "Frankfurt School of Finance & Management" },
   { country: "Allemagne", city: "Würzburg", school: "University of Würzburg" },
@@ -205,9 +248,9 @@ function DestinationSearch({ value, onChange, onSelect }) {
       {open && (
         <div style={{
           position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
-          background: "#ffffff",
-          border: "0.5px solid #e5e7eb",
-          borderRadius: "12px",
+          background: "var(--color-background-primary)",
+          border: "0.5px solid var(--color-border-secondary)",
+          borderRadius: "var(--border-radius-lg)",
           zIndex: 100, overflow: "hidden",
           boxShadow: "0 4px 16px rgba(0,0,0,0.08)"
         }}>
@@ -218,16 +261,16 @@ function DestinationSearch({ value, onChange, onSelect }) {
               onMouseEnter={() => setHighlighted(i)}
               style={{
                 padding: "10px 14px",
-                background: i === highlighted ? "#f7f7f5" : "transparent",
+                background: i === highlighted ? "var(--color-background-secondary)" : "transparent",
                 cursor: "pointer",
                 display: "flex", alignItems: "baseline", gap: "8px",
-                borderBottom: i < results.length - 1 ? "0.5px solid #f3f4f6" : "none"
+                borderBottom: i < results.length - 1 ? "0.5px solid var(--color-border-tertiary)" : "none"
               }}
             >
-              <span style={{ fontSize: "13px", fontWeight: 500, color: "#1a1a1a", flex: "0 0 auto" }}>
+              <span style={{ fontSize: "13px", fontWeight: 500, color: "var(--color-text-primary)", flex: "0 0 auto" }}>
                 {d.school}
               </span>
-              <span style={{ fontSize: "12px", color: "#6b6b6b", whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: "12px", color: "var(--color-text-secondary)", whiteSpace: "nowrap" }}>
                 {d.city} · {d.country}
               </span>
             </div>
@@ -273,8 +316,8 @@ function EmailInput({ value, onChange, placeholder }) {
           onClick={() => { onChange(value + DOMAIN); inputRef.current?.focus(); }}
           style={{
             position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
-            background: "#eff6ff", color: "#2563eb",
-            fontSize: 12, padding: "3px 8px", borderRadius: "8px",
+            background: "var(--color-background-info)", color: "var(--color-text-info)",
+            fontSize: 12, padding: "3px 8px", borderRadius: "var(--border-radius-md)",
             cursor: "pointer", userSelect: "none", whiteSpace: "nowrap"
           }}
         >
@@ -287,16 +330,16 @@ function EmailInput({ value, onChange, placeholder }) {
 
 function SemesterBadge({ semester }) {
   const colors = {
-    fall:   { bg: "#fffbeb", color: "#d97706" },
-    spring: { bg: "#f0fdf4", color: "#16a34a" },
-    both:   { bg: "#eff6ff",    color: "#2563eb" },
+    fall:   { bg: "var(--color-background-warning)", color: "var(--color-text-warning)" },
+    spring: { bg: "var(--color-background-success)", color: "var(--color-text-success)" },
+    both:   { bg: "var(--color-background-info)",    color: "var(--color-text-info)" },
   };
   const c = colors[semester] || colors.both;
   return (
     <span style={{
       background: c.bg, color: c.color,
       fontSize: 11, padding: "2px 7px",
-      borderRadius: "8px",
+      borderRadius: "var(--border-radius-md)",
       fontWeight: 500, whiteSpace: "nowrap"
     }}>
       {SEMESTER_LABELS[semester] || semester}
@@ -311,26 +354,26 @@ function StudentCard({ student }) {
 
   return (
     <div style={{
-      background: "#ffffff",
-      border: "0.5px solid #f3f4f6",
-      borderRadius: "12px",
+      background: "var(--color-background-primary)",
+      border: "0.5px solid var(--color-border-tertiary)",
+      borderRadius: "var(--border-radius-lg)",
       padding: "1rem 1.25rem",
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: student.whatsapp ? 10 : 0 }}>
         <div style={{
           width: 40, height: 40, borderRadius: "50%",
-          background: "#eff6ff",
+          background: "var(--color-background-info)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontWeight: 500, fontSize: 14, color: "#2563eb", flexShrink: 0
+          fontWeight: 500, fontSize: 14, color: "var(--color-text-info)", flexShrink: 0
         }}>{initials.toUpperCase()}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <p style={{ margin: 0, fontWeight: 500, fontSize: 14, color: "#1a1a1a" }}>
+            <p style={{ margin: 0, fontWeight: 500, fontSize: 14, color: "var(--color-text-primary)" }}>
               {student.firstName} {student.lastName}
             </p>
             <SemesterBadge semester={student.semester} />
           </div>
-          <p style={{ margin: "2px 0 0", fontSize: 12, color: "#6b6b6b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--color-text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {student.destination.school} · {student.destination.city}
           </p>
         </div>
@@ -344,7 +387,7 @@ function StudentCard({ student }) {
             display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
             width: "100%", padding: "8px", boxSizing: "border-box",
             background: "#25D366", color: "#fff",
-            borderRadius: "8px",
+            borderRadius: "var(--border-radius-md)",
             fontSize: 13, fontWeight: 500, textDecoration: "none",
             border: "none", cursor: "pointer"
           }}
@@ -423,18 +466,18 @@ Réponds UNIQUEMENT en JSON valide, sans balises markdown, avec exactement cette
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
             {[["Loyer", d.loyer], ["Nourriture", d.nourriture], ["Transport", d.transport]].map(([k, v]) => (
-              <div key={k} style={{ background: "#eeede8", borderRadius: "8px", padding: "8px 10px" }}>
-                <p style={{ margin: 0, fontSize: 11, color: "#6b6b6b" }}>{k}</p>
-                <p style={{ margin: "2px 0 0", fontSize: 12, fontWeight: 500, color: "#1a1a1a" }}>{v}</p>
+              <div key={k} style={{ background: "var(--color-background-tertiary)", borderRadius: "var(--border-radius-md)", padding: "8px 10px" }}>
+                <p style={{ margin: 0, fontSize: 11, color: "var(--color-text-secondary)" }}>{k}</p>
+                <p style={{ margin: "2px 0 0", fontSize: 12, fontWeight: 500, color: "var(--color-text-primary)" }}>{v}</p>
               </div>
             ))}
           </div>
-          <div style={{ padding: "8px 12px", background: "#fffbeb", borderRadius: "8px" }}>
-            <p style={{ margin: 0, fontSize: 12, color: "#d97706" }}>
+          <div style={{ padding: "8px 12px", background: "var(--color-background-warning)", borderRadius: "var(--border-radius-md)" }}>
+            <p style={{ margin: 0, fontSize: 12, color: "var(--color-text-warning)" }}>
               <strong>Budget estimé :</strong> {d.mensuel_estime} / mois
             </p>
           </div>
-          <p style={{ margin: 0, fontSize: 13, color: "#6b6b6b", lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-secondary)", lineHeight: 1.5 }}>
             <i className="ti ti-bulb" style={{ fontSize: 13, marginRight: 5, verticalAlign: "-1px" }} aria-hidden="true"></i>
             {d.conseil}
           </p>
@@ -449,21 +492,21 @@ Réponds UNIQUEMENT en JSON valide, sans balises markdown, avec exactement cette
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {d.plateformes.map(p => (
-              <span key={p} style={{ background: "#eff6ff", color: "#2563eb", fontSize: 12, padding: "3px 9px", borderRadius: "8px" }}>{p}</span>
+              <span key={p} style={{ background: "var(--color-background-info)", color: "var(--color-text-info)", fontSize: 12, padding: "3px 9px", borderRadius: "var(--border-radius-md)" }}>{p}</span>
             ))}
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {d.quartiers.map(q => (
-              <span key={q} style={{ background: "#f7f7f5", color: "#6b6b6b", fontSize: 12, padding: "3px 9px", borderRadius: "8px", border: "0.5px solid #f3f4f6" }}>
+              <span key={q} style={{ background: "var(--color-background-secondary)", color: "var(--color-text-secondary)", fontSize: 12, padding: "3px 9px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)" }}>
                 <i className="ti ti-map-pin" style={{ fontSize: 11, marginRight: 3 }} aria-hidden="true"></i>{q}
               </span>
             ))}
           </div>
-          <p style={{ margin: 0, fontSize: 13, color: "#6b6b6b", lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-secondary)", lineHeight: 1.5 }}>
             <i className="ti ti-calendar" style={{ fontSize: 13, marginRight: 5, verticalAlign: "-1px" }} aria-hidden="true"></i>
             <strong>Quand chercher :</strong> {d.meilleur_moment}
           </p>
-          <p style={{ margin: 0, fontSize: 13, color: "#6b6b6b", lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-secondary)", lineHeight: 1.5 }}>
             <i className="ti ti-bulb" style={{ fontSize: 13, marginRight: 5, verticalAlign: "-1px" }} aria-hidden="true"></i>
             {d.conseil}
           </p>
@@ -478,24 +521,24 @@ Réponds UNIQUEMENT en JSON valide, sans balises markdown, avec exactement cette
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {d.a_savoir.map((info, i) => (
-              <p key={i} style={{ margin: 0, fontSize: 13, color: "#1a1a1a", lineHeight: 1.5, paddingLeft: 14, position: "relative" }}>
-                <span style={{ position: "absolute", left: 0, color: "#9e9e9e" }}>·</span>
+              <p key={i} style={{ margin: 0, fontSize: 13, color: "var(--color-text-primary)", lineHeight: 1.5, paddingLeft: 14, position: "relative" }}>
+                <span style={{ position: "absolute", left: 0, color: "var(--color-text-tertiary)" }}>·</span>
                 {info}
               </p>
             ))}
           </div>
-          <p style={{ margin: 0, fontSize: 13, color: "#6b6b6b", lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-secondary)", lineHeight: 1.5 }}>
             <i className="ti ti-language" style={{ fontSize: 13, marginRight: 5, verticalAlign: "-1px" }} aria-hidden="true"></i>
             {d.langue}
           </p>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {d.a_faire.map(a => (
-              <span key={a} style={{ background: "#f0fdf4", color: "#16a34a", fontSize: 12, padding: "3px 9px", borderRadius: "8px" }}>
+              <span key={a} style={{ background: "var(--color-background-success)", color: "var(--color-text-success)", fontSize: 12, padding: "3px 9px", borderRadius: "var(--border-radius-md)" }}>
                 <i className="ti ti-star" style={{ fontSize: 11, marginRight: 3 }} aria-hidden="true"></i>{a}
               </span>
             ))}
           </div>
-          <p style={{ margin: 0, fontSize: 13, color: "#6b6b6b", lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-secondary)", lineHeight: 1.5 }}>
             <i className="ti ti-bulb" style={{ fontSize: 13, marginRight: 5, verticalAlign: "-1px" }} aria-hidden="true"></i>
             {d.conseil}
           </p>
@@ -511,18 +554,18 @@ Réponds UNIQUEMENT en JSON valide, sans balises markdown, avec exactement cette
       </button>
 
       <div style={{ marginBottom: "1.5rem" }}>
-        <h2 style={{ fontSize: 18, fontWeight: 500, margin: "0 0 4px", color: "#1a1a1a" }}>
+        <h2 style={{ fontSize: 18, fontWeight: 500, margin: "0 0 4px", color: "var(--color-text-primary)" }}>
           {destination.city}, {destination.country}
         </h2>
-        <p style={{ margin: 0, fontSize: 13, color: "#6b6b6b" }}>{destination.school}</p>
+        <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-secondary)" }}>{destination.school}</p>
       </div>
 
       {status === "idle" && (
         <div style={{ textAlign: "center", padding: "2rem 1rem" }}>
-          <p style={{ fontSize: 14, color: "#6b6b6b", marginBottom: "1.5rem", lineHeight: 1.6 }}>
+          <p style={{ fontSize: 14, color: "var(--color-text-secondary)", marginBottom: "1.5rem", lineHeight: 1.6 }}>
             Génère une fiche pratique personnalisée pour ta destination : budget, logement, culture et conseils clés.
           </p>
-          {error && <p style={{ fontSize: 13, color: "#dc2626", marginBottom: "1rem" }}>{error}</p>}
+          {error && <p style={{ fontSize: 13, color: "var(--color-text-danger)", marginBottom: "1rem" }}>{error}</p>}
           <button onClick={generate} style={{ padding: "10px 24px", fontWeight: 500 }}>
             Générer ma fiche destination ↗
           </button>
@@ -531,7 +574,7 @@ Réponds UNIQUEMENT en JSON valide, sans balises markdown, avec exactement cette
 
       {status === "loading" && (
         <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
-          <p style={{ fontSize: 14, color: "#6b6b6b", lineHeight: 1.6 }}>
+          <p style={{ fontSize: 14, color: "var(--color-text-secondary)", lineHeight: 1.6 }}>
             <i className="ti ti-loader" style={{ fontSize: 16, marginRight: 8, verticalAlign: "-2px" }} aria-hidden="true"></i>
             Génération de ta fiche en cours…
           </p>
@@ -542,19 +585,19 @@ Réponds UNIQUEMENT en JSON valide, sans balises markdown, avec exactement cette
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {sectionConfig.map(({ key, icon, label, render }) => (
             <div key={key} style={{
-              background: "#ffffff",
-              border: "0.5px solid #f3f4f6",
-              borderRadius: "12px",
+              background: "var(--color-background-primary)",
+              border: "0.5px solid var(--color-border-tertiary)",
+              borderRadius: "var(--border-radius-lg)",
               padding: "1rem 1.25rem"
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                <i className={`ti ${icon}`} style={{ fontSize: 16, color: "#6b6b6b" }} aria-hidden="true"></i>
-                <p style={{ margin: 0, fontWeight: 500, fontSize: 14, color: "#1a1a1a" }}>{label}</p>
+                <i className={`ti ${icon}`} style={{ fontSize: 16, color: "var(--color-text-secondary)" }} aria-hidden="true"></i>
+                <p style={{ margin: 0, fontWeight: 500, fontSize: 14, color: "var(--color-text-primary)" }}>{label}</p>
               </div>
               {render(sections[key])}
             </div>
           ))}
-          <p style={{ margin: "4px 0 0", fontSize: 11, color: "#9e9e9e", textAlign: "center", lineHeight: 1.5 }}>
+          <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--color-text-tertiary)", textAlign: "center", lineHeight: 1.5 }}>
             Informations générées par IA — à vérifier et compléter avec les retours d'anciens.
           </p>
         </div>
@@ -572,18 +615,29 @@ export default function ExchangeMatch() {
   const [error, setError] = useState("");
   const [guideDestination, setGuideDestination] = useState(null);
 
-  function getStudents() {
-    try { return JSON.parse(localStorage.getItem("em_students") || "[]"); } catch { return []; }
-  }
-  function saveStudents(arr) { localStorage.setItem("em_students", JSON.stringify(arr)); }
+  const [loading, setLoading] = useState(false);
+  const [allStudents, setAllStudents] = useState([]);
 
-  // Mécanique curiosité : compter les matchs potentiels pour une destination sans révéler les noms
+  useEffect(() => {
+    getStudentsFromDB().then(data => {
+      setAllStudents(data.map(s => ({
+        id: s.id,
+        firstName: s.first_name,
+        lastName: s.last_name,
+        email: s.email,
+        whatsapp: s.whatsapp,
+        semester: s.semester,
+        destination: { school: s.school, city: s.city, country: s.country }
+      })));
+    }).catch(() => {});
+  }, []);
+
   function countMatchesFor(destination) {
     if (!destination) return 0;
-    return getStudents().filter(s => s.destination.school === destination.school).length;
+    return allStudents.filter(s => s.destination.school === destination.school).length;
   }
 
-  function handleRegister() {
+  async function handleRegister() {
     setError("");
     if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim()) {
       setError("Merci de remplir tous les champs."); return;
@@ -594,38 +648,65 @@ export default function ExchangeMatch() {
     if (!form.email.includes("@")) {
       setError("Adresse email invalide."); return;
     }
-    const students = getStudents();
-    if (students.find(s => s.email.toLowerCase() === form.email.toLowerCase())) {
-      setError("Cette adresse email est déjà enregistrée."); return;
+    setLoading(true);
+    try {
+      await insertStudent(form);
+      const data = await getStudentsFromDB();
+      const students = data.map(s => ({
+        id: s.id,
+        firstName: s.first_name,
+        lastName: s.last_name,
+        email: s.email,
+        whatsapp: s.whatsapp,
+        semester: s.semester,
+        destination: { school: s.school, city: s.city, country: s.country }
+      }));
+      setAllStudents(students);
+      const me = students.find(s => s.email.toLowerCase() === form.email.toLowerCase());
+      const myMatches = students.filter(s => s.id !== me.id && s.destination.school === me.destination.school);
+      setRegistered(me);
+      setMatches(myMatches);
+      setStep(STEPS.MATCHES);
+    } catch (e) {
+      if (e.message.includes("unique")) {
+        setError("Cette adresse email est déjà enregistrée.");
+      } else {
+        setError("Une erreur est survenue. Réessaie.");
+      }
     }
-    const me = { ...form, id: Date.now() };
-    students.push(me);
-    saveStudents(students);
-    const myMatches = students.filter(s =>
-      s.id !== me.id && s.destination.school === me.destination.school
-    );
-    setRegistered(me);
-    setMatches(myMatches);
-    setStep(STEPS.MATCHES);
+    setLoading(false);
   }
 
-  function handleLookup() {
+  async function handleLookup() {
     setError("");
-    const students = getStudents();
-    const me = students.find(s => s.email.toLowerCase() === lookupEmail.toLowerCase());
-    if (!me) { setError("Email introuvable. Vérifie l'adresse ou inscris-toi."); return; }
-    const myMatches = students.filter(s =>
-      s.id !== me.id && s.destination.school === me.destination.school
-    );
-    setRegistered(me);
-    setMatches(myMatches);
-    setStep(STEPS.MATCHES);
+    setLoading(true);
+    try {
+      const data = await getStudentsFromDB();
+      const students = data.map(s => ({
+        id: s.id,
+        firstName: s.first_name,
+        lastName: s.last_name,
+        email: s.email,
+        whatsapp: s.whatsapp,
+        semester: s.semester,
+        destination: { school: s.school, city: s.city, country: s.country }
+      }));
+      setAllStudents(students);
+      const me = students.find(s => s.email.toLowerCase() === lookupEmail.toLowerCase());
+      if (!me) { setError("Email introuvable. Vérifie l'adresse ou inscris-toi."); setLoading(false); return; }
+      const myMatches = students.filter(s => s.id !== me.id && s.destination.school === me.destination.school);
+      setRegistered(me);
+      setMatches(myMatches);
+      setStep(STEPS.MATCHES);
+    } catch {
+      setError("Une erreur est survenue. Réessaie.");
+    }
+    setLoading(false);
   }
 
   function getDirectoryData() {
-    const students = getStudents();
     const map = {};
-    students.forEach(s => {
+    allStudents.forEach(s => {
       const key = s.destination.school;
       if (!map[key]) map[key] = { ...s.destination, count: 0, semesters: new Set() };
       map[key].count++;
@@ -635,9 +716,8 @@ export default function ExchangeMatch() {
   }
 
   const stats = (() => {
-    const s = getStudents();
-    const countries = new Set(s.map(x => x.destination.country));
-    return { total: s.length, countries: countries.size };
+    const countries = new Set(allStudents.map(x => x.destination.country));
+    return { total: allStudents.length, countries: countries.size };
   })();
 
   // ── PAGE GUIDE ──
@@ -653,13 +733,13 @@ export default function ExchangeMatch() {
           ← Accueil
         </button>
 
-        <div style={{ background: "#f7f7f5", borderRadius: "12px", padding: "1rem 1.25rem", marginBottom: "1.5rem" }}>
-          <p style={{ margin: "0 0 2px", fontSize: 12, color: "#6b6b6b" }}>Ta destination</p>
-          <p style={{ margin: 0, fontWeight: 500, fontSize: 15, color: "#1a1a1a" }}>
+        <div style={{ background: "var(--color-background-secondary)", borderRadius: "var(--border-radius-lg)", padding: "1rem 1.25rem", marginBottom: "1.5rem" }}>
+          <p style={{ margin: "0 0 2px", fontSize: 12, color: "var(--color-text-secondary)" }}>Ta destination</p>
+          <p style={{ margin: 0, fontWeight: 500, fontSize: 15, color: "var(--color-text-primary)" }}>
             {registered.destination.school}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
-            <p style={{ margin: 0, fontSize: 12, color: "#6b6b6b" }}>
+            <p style={{ margin: 0, fontSize: 12, color: "var(--color-text-secondary)" }}>
               {registered.destination.city} · {registered.destination.country}
             </p>
             <SemesterBadge semester={registered.semester} />
@@ -674,7 +754,7 @@ export default function ExchangeMatch() {
           Découvrir ma destination
         </button>
 
-        <h2 style={{ fontSize: 16, fontWeight: 500, margin: "0 0 12px", color: "#1a1a1a" }}>
+        <h2 style={{ fontSize: 16, fontWeight: 500, margin: "0 0 12px", color: "var(--color-text-primary)" }}>
           {matches.length === 0
             ? "Aucun autre étudiant pour l'instant"
             : `${matches.length} étudiant${matches.length > 1 ? "s" : ""} part${matches.length > 1 ? "ent" : ""} au même endroit`}
@@ -682,8 +762,8 @@ export default function ExchangeMatch() {
 
         {matches.length === 0 ? (
           <div style={{
-            background: "#f7f7f5", borderRadius: "12px",
-            padding: "1.5rem", textAlign: "center", color: "#6b6b6b", fontSize: 14, lineHeight: 1.6
+            background: "var(--color-background-secondary)", borderRadius: "var(--border-radius-lg)",
+            padding: "1.5rem", textAlign: "center", color: "var(--color-text-secondary)", fontSize: 14, lineHeight: 1.6
           }}>
             Tu seras le premier ! Partage l'app à tes camarades pour voir qui te rejoindra.
           </div>
@@ -704,7 +784,7 @@ export default function ExchangeMatch() {
         <button onClick={() => { setStep(STEPS.HOME); setError(""); }} style={{ fontSize: 13, marginBottom: "1.5rem", padding: "6px 12px" }}>
           ← Retour
         </button>
-        <h2 style={{ fontSize: 18, fontWeight: 500, margin: "0 0 1.5rem", color: "#1a1a1a" }}>
+        <h2 style={{ fontSize: 18, fontWeight: 500, margin: "0 0 1.5rem", color: "var(--color-text-primary)" }}>
           S'inscrire
         </h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -723,7 +803,7 @@ export default function ExchangeMatch() {
           />
 
           <div>
-            <p style={{ margin: "0 0 6px", fontSize: 13, color: "#6b6b6b" }}>Semestre</p>
+            <p style={{ margin: "0 0 6px", fontSize: 13, color: "var(--color-text-secondary)" }}>Semestre</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
               {[["fall", "Fall"], ["spring", "Spring"], ["both", "Les deux"]].map(([val, label]) => (
                 <button
@@ -733,9 +813,9 @@ export default function ExchangeMatch() {
                     padding: "8px",
                     fontSize: 13,
                     fontWeight: form.semester === val ? 500 : 400,
-                    background: form.semester === val ? "#eff6ff" : "transparent",
-                    color: form.semester === val ? "#2563eb" : "#6b6b6b",
-                    border: form.semester === val ? "0.5px solid #bfdbfe" : "0.5px solid #f3f4f6",
+                    background: form.semester === val ? "var(--color-background-info)" : "transparent",
+                    color: form.semester === val ? "var(--color-text-info)" : "var(--color-text-secondary)",
+                    border: form.semester === val ? "0.5px solid var(--color-border-info)" : "0.5px solid var(--color-border-tertiary)",
                   }}
                 >
                   {label}
@@ -745,7 +825,7 @@ export default function ExchangeMatch() {
           </div>
 
           <div>
-            <p style={{ margin: "0 0 6px", fontSize: 13, color: "#6b6b6b" }}>
+            <p style={{ margin: "0 0 6px", fontSize: 13, color: "var(--color-text-secondary)" }}>
               Destination (pays, ville ou école)
             </p>
             <DestinationSearch
@@ -756,26 +836,26 @@ export default function ExchangeMatch() {
             {form.destination && previewCount > 0 && (
               <div style={{
                 marginTop: 8, padding: "8px 12px",
-                background: "#f0fdf4",
-                borderRadius: "8px",
+                background: "var(--color-background-success)",
+                borderRadius: "var(--border-radius-md)",
                 display: "flex", alignItems: "center", gap: 6
               }}>
-                <i className="ti ti-users" style={{ fontSize: 15, color: "#16a34a" }} aria-hidden="true"></i>
-                <p style={{ margin: 0, fontSize: 13, color: "#16a34a" }}>
+                <i className="ti ti-users" style={{ fontSize: 15, color: "var(--color-text-success)" }} aria-hidden="true"></i>
+                <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-success)" }}>
                   {previewCount} étudiant{previewCount > 1 ? "s" : ""} déjà inscrit{previewCount > 1 ? "s" : ""} pour cette destination — inscris-toi pour voir qui !
                 </p>
               </div>
             )}
             {form.destination && previewCount === 0 && (
-              <p style={{ margin: "6px 0 0", fontSize: 12, color: "#6b6b6b" }}>
+              <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--color-text-secondary)" }}>
                 Aucun inscrit pour l'instant — tu seras le premier !
               </p>
             )}
           </div>
 
-          {error && <p style={{ margin: 0, fontSize: 13, color: "#dc2626" }}>{error}</p>}
-          <button onClick={handleRegister} style={{ marginTop: 4, padding: "10px", fontWeight: 500 }}>
-            Voir mes matchs ↗
+          {error && <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-danger)" }}>{error}</p>}
+          <button onClick={handleRegister} disabled={loading} style={{ marginTop: 4, padding: "10px", fontWeight: 500, opacity: loading ? 0.6 : 1 }}>
+            {loading ? "Inscription en cours…" : "Voir mes matchs ↗"}
           </button>
         </div>
       </div>
@@ -789,14 +869,14 @@ export default function ExchangeMatch() {
         <button onClick={() => { setStep(STEPS.HOME); setError(""); }} style={{ fontSize: 13, marginBottom: "1.5rem", padding: "6px 12px" }}>
           ← Retour
         </button>
-        <h2 style={{ fontSize: 18, fontWeight: 500, margin: "0 0 1.5rem", color: "#1a1a1a" }}>
+        <h2 style={{ fontSize: 18, fontWeight: 500, margin: "0 0 1.5rem", color: "var(--color-text-primary)" }}>
           Retrouver mes matchs
         </h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <EmailInput placeholder="Ton email emlyon" value={lookupEmail} onChange={setLookupEmail} />
-          {error && <p style={{ margin: 0, fontSize: 13, color: "#dc2626" }}>{error}</p>}
-          <button onClick={handleLookup} style={{ padding: "10px", fontWeight: 500 }}>
-            Voir mes matchs ↗
+          {error && <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-danger)" }}>{error}</p>}
+          <button onClick={handleLookup} disabled={loading} style={{ padding: "10px", fontWeight: 500, opacity: loading ? 0.6 : 1 }}>
+            {loading ? "Recherche en cours…" : "Voir mes matchs ↗"}
           </button>
         </div>
       </div>
@@ -811,29 +891,29 @@ export default function ExchangeMatch() {
         <button onClick={() => setStep(STEPS.HOME)} style={{ fontSize: 13, marginBottom: "1.5rem", padding: "6px 12px" }}>
           ← Retour
         </button>
-        <h2 style={{ fontSize: 18, fontWeight: 500, margin: "0 0 1.5rem", color: "#1a1a1a" }}>
+        <h2 style={{ fontSize: 18, fontWeight: 500, margin: "0 0 1.5rem", color: "var(--color-text-primary)" }}>
           Destinations populaires
         </h2>
         {data.length === 0 ? (
-          <p style={{ color: "#6b6b6b", fontSize: 14 }}>Aucun étudiant inscrit pour l'instant.</p>
+          <p style={{ color: "var(--color-text-secondary)", fontSize: 14 }}>Aucun étudiant inscrit pour l'instant.</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {data.map((d, i) => (
               <div key={i} style={{
                 display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
-                background: "#ffffff",
-                border: "0.5px solid #f3f4f6",
-                borderRadius: "8px"
+                background: "var(--color-background-primary)",
+                border: "0.5px solid var(--color-border-tertiary)",
+                borderRadius: "var(--border-radius-md)"
               }}>
                 <div style={{
                   minWidth: 28, height: 28, borderRadius: "50%",
-                  background: "#eff6ff",
+                  background: "var(--color-background-info)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 13, fontWeight: 500, color: "#2563eb"
+                  fontSize: 13, fontWeight: 500, color: "var(--color-text-info)"
                 }}>{d.count}</div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "#1a1a1a" }}>{d.school}</p>
-                  <p style={{ margin: 0, fontSize: 12, color: "#6b6b6b" }}>{d.city} · {d.country}</p>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "var(--color-text-primary)" }}>{d.school}</p>
+                  <p style={{ margin: 0, fontSize: 12, color: "var(--color-text-secondary)" }}>{d.city} · {d.country}</p>
                 </div>
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
                   {[...d.semesters].map(s => <SemesterBadge key={s} semester={s} />)}
@@ -849,31 +929,31 @@ export default function ExchangeMatch() {
   // ── HOME ──
   return (
     <div style={{ maxWidth: 480, margin: "0 auto", padding: "2.5rem 1rem" }}>
-      <h2 style={{ fontSize: 22, fontWeight: 500, margin: "0 0 4px", color: "#1a1a1a" }}>
+      <h2 style={{ fontSize: 22, fontWeight: 500, margin: "0 0 4px", color: "var(--color-text-primary)" }}>
         ExchangeMatch
       </h2>
-      <p style={{ margin: "0 0 2rem", fontSize: 15, color: "#6b6b6b", lineHeight: 1.6 }}>
+      <p style={{ margin: "0 0 2rem", fontSize: 15, color: "var(--color-text-secondary)", lineHeight: 1.6 }}>
         Découvre qui part à l'autre bout du monde en même temps que toi.
       </p>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: "2rem" }}>
-        <div style={{ background: "#f7f7f5", borderRadius: "8px", padding: "1rem", textAlign: "center" }}>
-          <p style={{ margin: 0, fontSize: 28, fontWeight: 500, color: "#1a1a1a" }}>{stats.total}</p>
-          <p style={{ margin: "2px 0 0", fontSize: 12, color: "#6b6b6b" }}>étudiants inscrits</p>
+        <div style={{ background: "var(--color-background-secondary)", borderRadius: "var(--border-radius-md)", padding: "1rem", textAlign: "center" }}>
+          <p style={{ margin: 0, fontSize: 28, fontWeight: 500, color: "var(--color-text-primary)" }}>{stats.total}</p>
+          <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--color-text-secondary)" }}>étudiants inscrits</p>
         </div>
-        <div style={{ background: "#f7f7f5", borderRadius: "8px", padding: "1rem", textAlign: "center" }}>
-          <p style={{ margin: 0, fontSize: 28, fontWeight: 500, color: "#1a1a1a" }}>{stats.countries}</p>
-          <p style={{ margin: "2px 0 0", fontSize: 12, color: "#6b6b6b" }}>pays représentés</p>
+        <div style={{ background: "var(--color-background-secondary)", borderRadius: "var(--border-radius-md)", padding: "1rem", textAlign: "center" }}>
+          <p style={{ margin: 0, fontSize: 28, fontWeight: 500, color: "var(--color-text-primary)" }}>{stats.countries}</p>
+          <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--color-text-secondary)" }}>pays représentés</p>
         </div>
       </div>
 
       {stats.total === 0 && (
         <div style={{
           padding: "12px 14px", marginBottom: "1.5rem",
-          background: "#fffbeb",
-          borderRadius: "8px"
+          background: "var(--color-background-warning)",
+          borderRadius: "var(--border-radius-md)"
         }}>
-          <p style={{ margin: 0, fontSize: 13, color: "#d97706", lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-warning)", lineHeight: 1.5 }}>
             <i className="ti ti-star" style={{ fontSize: 14, marginRight: 6, verticalAlign: "-2px" }} aria-hidden="true"></i>
             Sois le premier à t'inscrire — et découvre très vite qui part avec toi.
           </p>
@@ -892,7 +972,7 @@ export default function ExchangeMatch() {
         </button>
       </div>
 
-      <p style={{ marginTop: "2rem", fontSize: 12, color: "#9e9e9e", lineHeight: 1.6 }}>
+      <p style={{ marginTop: "2rem", fontSize: 12, color: "var(--color-text-tertiary)", lineHeight: 1.6 }}>
         140 universités partenaires · 32 pays · Année 2026–2027
       </p>
     </div>
