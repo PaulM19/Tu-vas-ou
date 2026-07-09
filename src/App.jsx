@@ -666,6 +666,16 @@ export default function ExchangeMatch() {
       const myMatches = students.filter(s => s.id !== me.id && s.destination.school === me.destination.school);
       setRegistered(me);
       setMatches(myMatches);
+
+      // Envoyer les notifications email
+      if (myMatches.length > 0) {
+        fetch("/api/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ newStudent: me, matches: myMatches })
+        }).catch(() => {});
+      }
+
       setStep(STEPS.MATCHES);
     } catch (e) {
       if (e.message.includes("unique")) {
