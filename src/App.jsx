@@ -272,11 +272,11 @@ function DestinationSearch({ value, onChange, onSelect }) {
       {open && (
         <div style={{
           position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
-          background: "var(--color-background-primary)",
-          border: "0.5px solid var(--color-border-secondary)",
-          borderRadius: "var(--border-radius-lg)",
-          zIndex: 100, overflow: "hidden",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.08)"
+          background: "#ffffff",
+          border: "0.5px solid rgba(0,0,0,0.15)",
+          borderRadius: 12,
+          zIndex: 9999, overflow: "hidden",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.12)"
         }}>
           {results.map((d, i) => (
             <div
@@ -307,16 +307,16 @@ function DestinationSearch({ value, onChange, onSelect }) {
 
 function EmailInput({ value, onChange, placeholder }) {
   const DOMAIN = "@edu.em-lyon.com";
-  const showSuggestion = value.includes("@") && !value.includes(".") && DOMAIN.startsWith("@" + value.split("@")[1]);
   const showPill = value.length > 0 && !value.includes("@");
   const inputRef = useRef(null);
 
   function handleKey(e) {
-    if ((e.key === "Tab" || e.key === "ArrowRight" || e.key === "Enter") && showSuggestion) {
+    if ((e.key === "Tab" || e.key === "ArrowRight") && showPill) {
       e.preventDefault();
-      onChange(value.split("@")[0] + DOMAIN);
+      onChange(value + DOMAIN);
     }
-    if (e.key === "Tab" && showPill) {
+    // Sur Entrée, compléter le mail si pas encore de @ avant de soumettre
+    if (e.key === "Enter" && showPill) {
       e.preventDefault();
       onChange(value + DOMAIN);
     }
@@ -822,7 +822,7 @@ export default function ExchangeMatch() {
         <h2 style={{ fontSize: 18, fontWeight: 500, margin: "0 0 1.5rem", color: "var(--color-text-primary)" }}>
           S'inscrire
         </h2>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, overflow: "visible" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <input placeholder="Prénom" value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} />
             <input placeholder="Nom" value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} />
