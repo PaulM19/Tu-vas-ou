@@ -186,7 +186,31 @@ const DESTINATIONS = [
   { country: "Vietnam", city: "Hanoï", school: "VinUniversity" },
 ];
 
-const SEMESTER_LABELS = { fall: "Fall", spring: "Spring", both: "Fall & Spring" };
+const SEMESTER_LABELS = { fall: "Fall", spring: "Spring", double: "Double diplôme" };
+
+function SemesterToggle({ val, label, active, onClick }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        padding: "12px 8px",
+        fontSize: 13,
+        fontWeight: active ? 600 : 400,
+        background: active || hovered ? "#1a1a1a" : "transparent",
+        color: active || hovered ? "#fff" : "#6b6b6b",
+        border: active ? "0.5px solid #1a1a1a" : "0.5px solid rgba(0,0,0,0.15)",
+        borderRadius: 8,
+        transition: "all 0.15s",
+        cursor: "pointer"
+      }}
+    >
+      {label}
+    </button>
+  );
+}
 
 function normalize(str) {
   return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -647,7 +671,7 @@ export default function ExchangeMatch() {
     }
     const emailLower = form.email.toLowerCase().trim();
     if (!emailLower.endsWith("@edu.em-lyon.com")) {
-      setError("Seuls les étudiants emlyon peuvent s'inscrire. Utilise ton adresse @edu.em-lyon.com."); return;
+      setError("Seuls les étudiants emlyon peuvent s'inscrire. Utilise ton adresse @edu.em-lyon.com"); return;
     }
     setLoading(true);
     try {
@@ -813,74 +837,78 @@ export default function ExchangeMatch() {
                 value={form.countryCode || "+33"}
                 onChange={e => setForm(f => ({ ...f, countryCode: e.target.value }))}
                 style={{
-                  height: 42, padding: "0 8px", border: "0.5px solid rgba(0,0,0,0.25)",
+                  height: 42, padding: "0 8px",
+                  border: "0.5px solid rgba(0,0,0,0.25)",
                   borderRadius: 8, background: "#fff", fontSize: 14, color: "#1a1a1a",
-                  fontFamily: "inherit", flexShrink: 0, width: 110, cursor: "pointer"
+                  fontFamily: "inherit", flexShrink: 0, width: 105, cursor: "pointer",
+                  outline: "none", appearance: "none", WebkitAppearance: "none",
+                  backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6b6b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")",
+                  backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center",
+                  paddingRight: 28
                 }}
               >
-                <option value="+33">🇫🇷 +33</option>
-                <option value="+1">🇺🇸 +1</option>
-                <option value="+44">🇬🇧 +44</option>
-                <option value="+49">🇩🇪 +49</option>
-                <option value="+34">🇪🇸 +34</option>
-                <option value="+39">🇮🇹 +39</option>
-                <option value="+31">🇳🇱 +31</option>
-                <option value="+32">🇧🇪 +32</option>
-                <option value="+41">🇨🇭 +41</option>
-                <option value="+46">🇸🇪 +46</option>
-                <option value="+47">🇳🇴 +47</option>
-                <option value="+45">🇩🇰 +45</option>
-                <option value="+358">🇫🇮 +358</option>
-                <option value="+351">🇵🇹 +351</option>
-                <option value="+48">🇵🇱 +48</option>
-                <option value="+55">🇧🇷 +55</option>
-                <option value="+52">🇲🇽 +52</option>
-                <option value="+54">🇦🇷 +54</option>
-                <option value="+56">🇨🇱 +56</option>
-                <option value="+57">🇨🇴 +57</option>
-                <option value="+51">🇵🇪 +51</option>
-                <option value="+598">🇺🇾 +598</option>
-                <option value="+86">🇨🇳 +86</option>
-                <option value="+81">🇯🇵 +81</option>
-                <option value="+82">🇰🇷 +82</option>
-                <option value="+91">🇮🇳 +91</option>
-                <option value="+65">🇸🇬 +65</option>
-                <option value="+60">🇲🇾 +60</option>
-                <option value="+66">🇹🇭 +66</option>
-                <option value="+84">🇻🇳 +84</option>
-                <option value="+62">🇮🇩 +62</option>
-                <option value="+63">🇵🇭 +63</option>
-                <option value="+971">🇦🇪 +971</option>
-                <option value="+212">🇲🇦 +212</option>
-                <option value="+221">🇸🇳 +221</option>
-                <option value="+20">🇪🇬 +20</option>
-                <option value="+7">🇷🇺 +7</option>
-                <option value="+380">🇺🇦 +380</option>
-                <option value="+420">🇨🇿 +420</option>
-                <option value="+36">🇭🇺 +36</option>
-                <option value="+40">🇷🇴 +40</option>
-                <option value="+359">🇧🇬 +359</option>
-                <option value="+385">🇭🇷 +385</option>
-                <option value="+386">🇸🇮 +386</option>
-                <option value="+421">🇸🇰 +421</option>
-                <option value="+370">🇱🇹 +370</option>
-                <option value="+371">🇱🇻 +371</option>
-                <option value="+372">🇪🇪 +372</option>
-                <option value="+30">🇬🇷 +30</option>
-                <option value="+90">🇹🇷 +90</option>
-                <option value="+972">🇮🇱 +972</option>
-                <option value="+880">🇧🇩 +880</option>
-                <option value="+94">🇱🇰 +94</option>
-                <option value="+977">🇳🇵 +977</option>
-                <option value="+855">🇰🇭 +855</option>
-                <option value="+7">🇰🇿 +7</option>
-                <option value="+998">🇺🇿 +998</option>
-                <option value="+61">🇦🇺 +61</option>
-                <option value="+64">🇳🇿 +64</option>
-                <option value="+27">🇿🇦 +27</option>
-                <option value="+234">🇳🇬 +234</option>
-                <option value="+254">🇰🇪 +254</option>
-                <option value="+250">🇷🇼 +250</option>
+                <option value="+33">FR +33</option>
+                <option value="+1">US +1</option>
+                <option value="+44">GB +44</option>
+                <option value="+49">DE +49</option>
+                <option value="+34">ES +34</option>
+                <option value="+39">IT +39</option>
+                <option value="+31">NL +31</option>
+                <option value="+32">BE +32</option>
+                <option value="+41">CH +41</option>
+                <option value="+46">SE +46</option>
+                <option value="+47">NO +47</option>
+                <option value="+45">DK +45</option>
+                <option value="+358">FI +358</option>
+                <option value="+351">PT +351</option>
+                <option value="+48">PL +48</option>
+                <option value="+55">BR +55</option>
+                <option value="+52">MX +52</option>
+                <option value="+54">AR +54</option>
+                <option value="+56">CL +56</option>
+                <option value="+57">CO +57</option>
+                <option value="+51">PE +51</option>
+                <option value="+598">UY +598</option>
+                <option value="+86">CN +86</option>
+                <option value="+81">JP +81</option>
+                <option value="+82">KR +82</option>
+                <option value="+91">IN +91</option>
+                <option value="+65">SG +65</option>
+                <option value="+60">MY +60</option>
+                <option value="+66">TH +66</option>
+                <option value="+84">VN +84</option>
+                <option value="+62">ID +62</option>
+                <option value="+63">PH +63</option>
+                <option value="+971">AE +971</option>
+                <option value="+212">MA +212</option>
+                <option value="+221">SN +221</option>
+                <option value="+20">EG +20</option>
+                <option value="+7">RU +7</option>
+                <option value="+380">UA +380</option>
+                <option value="+420">CZ +420</option>
+                <option value="+36">HU +36</option>
+                <option value="+40">RO +40</option>
+                <option value="+359">BG +359</option>
+                <option value="+385">HR +385</option>
+                <option value="+386">SI +386</option>
+                <option value="+421">SK +421</option>
+                <option value="+370">LT +370</option>
+                <option value="+371">LV +371</option>
+                <option value="+372">EE +372</option>
+                <option value="+30">GR +30</option>
+                <option value="+90">TR +90</option>
+                <option value="+972">IL +972</option>
+                <option value="+880">BD +880</option>
+                <option value="+94">LK +94</option>
+                <option value="+977">NP +977</option>
+                <option value="+855">KH +855</option>
+                <option value="+998">UZ +998</option>
+                <option value="+61">AU +61</option>
+                <option value="+64">NZ +64</option>
+                <option value="+27">ZA +27</option>
+                <option value="+234">NG +234</option>
+                <option value="+254">KE +254</option>
+                <option value="+250">RW +250</option>
               </select>
               <input
                 type="tel"
@@ -895,23 +923,14 @@ export default function ExchangeMatch() {
           <div>
             <p style={{ margin: "0 0 8px", fontSize: 13, color: "#6b6b6b" }}>Semestre</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-              {[["fall", "🍂 Fall"], ["spring", "🌸 Spring"], ["both", "Les deux"]].map(([val, label]) => (
-                <button
+              {[["fall", "Fall"], ["spring", "Spring"], ["double", "Double diplôme"]].map(([val, label]) => (
+                <SemesterToggle
                   key={val}
+                  val={val}
+                  label={label}
+                  active={form.semester === val}
                   onClick={() => setForm(f => ({ ...f, semester: val }))}
-                  style={{
-                    padding: "12px 8px",
-                    fontSize: 14,
-                    fontWeight: form.semester === val ? 600 : 400,
-                    background: form.semester === val ? "#1a1a1a" : "transparent",
-                    color: form.semester === val ? "#fff" : "#6b6b6b",
-                    border: form.semester === val ? "0.5px solid #1a1a1a" : "0.5px solid rgba(0,0,0,0.15)",
-                    borderRadius: 8,
-                    transition: "all 0.15s"
-                  }}
-                >
-                  {label}
-                </button>
+                />
               ))}
             </div>
           </div>
@@ -961,13 +980,24 @@ export default function ExchangeMatch() {
         <button onClick={() => { setStep(STEPS.HOME); setError(""); }} style={{ fontSize: 13, marginBottom: "1.5rem", padding: "6px 12px" }}>
           ← Retour
         </button>
-        <h2 style={{ fontSize: 18, fontWeight: 500, margin: "0 0 1.5rem", color: "var(--color-text-primary)" }}>
+        <h2 style={{ fontSize: 18, fontWeight: 500, margin: "0 0 6px", color: "var(--color-text-primary)" }}>
           Retrouver mes matchs
         </h2>
+        <p style={{ margin: "0 0 1.5rem", fontSize: 14, color: "#6b6b6b", lineHeight: 1.5 }}>
+          Entre l'adresse email emlyon avec laquelle tu t'es inscrit.
+        </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <EmailInput placeholder="Ton email emlyon" value={lookupEmail} onChange={setLookupEmail} />
-          {error && <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-danger)" }}>{error}</p>}
-          <button onClick={handleLookup} disabled={loading} style={{ padding: "10px", fontWeight: 500, opacity: loading ? 0.6 : 1 }}>
+          <EmailInput
+            placeholder="prenom.nom@edu.em-lyon.com"
+            value={lookupEmail}
+            onChange={setLookupEmail}
+          />
+          {error && <p style={{ margin: 0, fontSize: 13, color: "#dc2626" }}>{error}</p>}
+          <button
+            onClick={handleLookup}
+            disabled={loading || !lookupEmail.includes("@")}
+            style={{ padding: "10px", fontWeight: 500, opacity: (loading || !lookupEmail.includes("@")) ? 0.5 : 1 }}
+          >
             {loading ? "Recherche en cours…" : "Voir mes matchs ↗"}
           </button>
         </div>
