@@ -310,15 +310,16 @@ function EmailInput({ value, onChange, placeholder }) {
   const showPill = value.length > 0 && !value.includes("@");
   const inputRef = useRef(null);
 
-  function handleKey(e) {
-    if ((e.key === "Tab" || e.key === "ArrowRight") && showPill) {
-      e.preventDefault();
+  function complete() {
+    if (value.length > 0 && !value.includes("@")) {
       onChange(value + DOMAIN);
     }
-    // Sur Entrée, compléter le mail si pas encore de @ avant de soumettre
-    if (e.key === "Enter" && showPill) {
+  }
+
+  function handleKey(e) {
+    if ((e.key === "Tab" || e.key === "ArrowRight" || e.key === "Enter") && showPill) {
       e.preventDefault();
-      onChange(value + DOMAIN);
+      complete();
     }
   }
 
@@ -331,17 +332,18 @@ function EmailInput({ value, onChange, placeholder }) {
         value={value}
         onChange={e => onChange(e.target.value)}
         onKeyDown={handleKey}
+        onBlur={complete}
         style={{ width: "100%", boxSizing: "border-box" }}
         autoComplete="off"
         autoCapitalize="none"
       />
       {showPill && (
         <div
-          onClick={() => { onChange(value + DOMAIN); inputRef.current?.focus(); }}
+          onMouseDown={e => { e.preventDefault(); complete(); inputRef.current?.focus(); }}
           style={{
             position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
-            background: "var(--color-background-info)", color: "var(--color-text-info)",
-            fontSize: 12, padding: "3px 8px", borderRadius: "var(--border-radius-md)",
+            background: "#eff6ff", color: "#2563eb",
+            fontSize: 12, padding: "3px 8px", borderRadius: 6,
             cursor: "pointer", userSelect: "none", whiteSpace: "nowrap"
           }}
         >
