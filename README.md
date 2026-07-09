@@ -1,6 +1,6 @@
 # Tu pars où ?
 
-Plateforme de mise en relation des étudiants emlyon partant en échange académique.
+Plateforme de mise en relation des étudiants emlyon partant en échange académique. 
 
 ## Stack
 - React 18 + Vite
