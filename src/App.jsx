@@ -36,6 +36,7 @@ async function insertStudent(s) {
         ? `${s.countryCode || "+33"}${s.whatsappNumber.replace(/^0/, "")}`
         : null,
       semester: s.semester,
+      looking_for: s.lookingFor?.join(",") || null,
       school: s.destination.school,
       city: s.destination.city,
       country: s.destination.country,
@@ -401,11 +402,13 @@ function SemBadge({ semester }) {
 }
 
 // ── STUDENT CARD ──────────────────────────────────────────────────────────────
+const LOOKING_LABELS = { coloc: "Coloc", amis: "Amis", conseils: "Conseils", activites: "Activités" };
+
 function StudentCard({ student }) {
   const initials = (student.firstName[0] + student.lastName[0]).toUpperCase();
   return (
     <div style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, padding: "14px 16px", boxShadow: T.shadow }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: student.whatsapp ? 12 : 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: (student.whatsapp || student.lookingFor?.length > 0) ? 12 : 0 }}>
         <div style={{ width: 38, height: 38, borderRadius: "50%", background: T.bgHover, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 13, color: T.muted, flexShrink: 0 }}>
           {initials}
         </div>
@@ -419,6 +422,15 @@ function StudentCard({ student }) {
           </p>
         </div>
       </div>
+      {student.lookingFor?.length > 0 && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: student.whatsapp ? 10 : 0 }}>
+          {student.lookingFor.map(lf => (
+            <span key={lf} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: T.bgHover, color: T.muted, border: `1px solid ${T.border}` }}>
+              {LOOKING_LABELS[lf] || lf}
+            </span>
+          ))}
+        </div>
+      )}
       {student.whatsapp && (
         <a
           href={`https://wa.me/${student.whatsapp.replace(/\D/g, "")}`}
@@ -437,7 +449,7 @@ function StudentCard({ student }) {
 export default function App() {
   const [screen, setScreen] = useState("home"); // home | register | lookup | matches | directory
   const [regStep, setRegStep] = useState(1); // 1=identity 2=destination 3=contact
-  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", destQuery: "", destination: null, semester: "fall", countryCode: "+33", whatsappNumber: "", consent: false });
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", destQuery: "", destination: null, semester: "fall", lookingFor: [], countryCode: "+33", whatsappNumber: "", consent: false });
   const [lookupEmail, setLookupEmail] = useState("");
   const [registered, setRegistered] = useState(null);
   const [matches, setMatches] = useState([]);
@@ -457,6 +469,7 @@ export default function App() {
       email: s.email,
       whatsapp: s.whatsapp,
       semester: s.semester,
+      lookingFor: s.looking_for ? s.looking_for.split(",") : [],
       destination: { school: s.school, city: s.city, country: s.country },
     }));
   }
@@ -679,11 +692,34 @@ export default function App() {
                 />
                 {form.destination && (
                   <div style={{ padding: "12px 14px", background: count > 0 ? T.greenBg : T.bgHover, borderRadius: T.radius, border: `1px solid ${count > 0 ? "#bbf7d0" : T.border}` }}>
-                    <p style={{ margin: 0, fontSize: 13, color: count > 0 ? T.green : T.muted, fontWeight: 500 }}>
-                      {count > 0
-                        ? `${count} étudiant${count > 1 ? "s" : ""} déjà inscrit${count > 1 ? "s" : ""} — inscris-toi pour les voir !`
-                        : "Tu seras le premier pour cette destination !"}
-                    </p>
+                    {count > 0 ? (
+                      <div>
+                        <p style={{ margin: "0 0 10px", fontSize: 13, color: T.green, fontWeight: 600 }}>
+                          {count} étudiant{count > 1 ? "s" : ""} déjà inscrit{count > 1 ? "s" : ""} pour cette destination
+                        </p>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {allStudents.filter(s => s.destination.school === form.destination.school).slice(0, 5).map((s, i) => (
+                            <div key={i} style={{
+                              width: 34, height: 34, borderRadius: "50%",
+                              background: T.bgHover,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              fontSize: 13, fontWeight: 600, color: T.muted,
+                              filter: "blur(4px)", userSelect: "none", border: `2px solid ${T.bgCard}`
+                            }}>
+                              {(s.firstName[0] + s.lastName[0]).toUpperCase()}
+                            </div>
+                          ))}
+                          {count > 5 && (
+                            <div style={{ width: 34, height: 34, borderRadius: "50%", background: T.border, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, color: T.muted }}>
+                              +{count - 5}
+                            </div>
+                          )}
+                        </div>
+                        <p style={{ margin: "8px 0 0", fontSize: 12, color: T.green }}>Inscris-toi pour voir leurs profils →</p>
+                      </div>
+                    ) : (
+                      <p style={{ margin: 0, fontSize: 13, color: T.muted, fontWeight: 500 }}>Tu seras le premier pour cette destination !</p>
+                    )}
                   </div>
                 )}
                 <div>
@@ -693,6 +729,34 @@ export default function App() {
                       const active = form.semester === val;
                       return (
                         <SemButton key={val} label={label} active={active} onClick={() => setForm((f) => ({ ...f, semester: val }))} />
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <p style={{ fontSize: 13, color: T.muted, margin: "0 0 10px" }}>Je cherche (optionnel)</p>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {[["coloc", "Une coloc"], ["amis", "Des amis"], ["conseils", "Des conseils"], ["activites", "Des activités"]].map(([val, label]) => {
+                      const active = form.lookingFor.includes(val);
+                      return (
+                        <button
+                          key={val}
+                          onClick={() => setForm(f => ({
+                            ...f,
+                            lookingFor: active
+                              ? f.lookingFor.filter(x => x !== val)
+                              : [...f.lookingFor, val]
+                          }))}
+                          style={{
+                            padding: "8px 14px", fontSize: 13, borderRadius: 99,
+                            background: active ? T.accent : "transparent",
+                            color: active ? T.accentFg : T.muted,
+                            border: `1px solid ${active ? T.accent : T.border}`,
+                            cursor: "pointer", transition: "all 0.12s"
+                          }}
+                        >
+                          {label}
+                        </button>
                       );
                     })}
                   </div>
@@ -800,7 +864,7 @@ export default function App() {
           </div>
         </div>
 
-        <div style={{ marginBottom: 20 }}>
+        <div style={{ marginBottom: 24 }}>
           <h2 style={{ fontSize: 20, fontWeight: 700, color: T.text, margin: "0 0 4px", letterSpacing: "-0.2px" }}>
             {matches.length === 0 ? "Aucun match pour l'instant" : `${matches.length} match${matches.length > 1 ? "s" : ""} trouvé${matches.length > 1 ? "s" : ""}`}
           </h2>
@@ -809,9 +873,11 @@ export default function App() {
           </p>
         </div>
 
+        <DestinationGuideCard destination={registered.destination} />
+
         {matches.length === 0 ? (
           <div style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, padding: "32px 20px", textAlign: "center", boxShadow: T.shadow }}>
-            <p style={{ fontSize: 32, margin: "0 0 12px" }}>🌍</p>
+            <p style={{ fontSize: 32, margin: "0 0 12px" }}></p>
             <p style={{ margin: 0, fontSize: 14, color: T.muted, lineHeight: 1.6 }}>Tu seras le premier à cette destination.<br />Reviens bientôt !</p>
             <button
               onClick={() => {
@@ -908,6 +974,70 @@ export default function App() {
   );
 
   return null;
+}
+
+// ── DESTINATION GUIDE CARD ─────────────────────────────────────────────────
+function DestinationGuideCard({ destination }) {
+  const [status, setStatus] = useState("idle"); // idle | loading | done | error
+  const [guide, setGuide] = useState(null);
+
+  async function generate() {
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/guide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ destination }),
+      });
+      const data = await res.json();
+      setGuide(data);
+      setStatus("done");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, padding: "16px 18px", marginBottom: 20, boxShadow: T.shadow }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: status === "done" ? 16 : 0 }}>
+        <div>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: T.text }}>Guide de ta destination</p>
+          <p style={{ margin: "2px 0 0", fontSize: 12, color: T.muted }}>{destination.city} · {destination.country}</p>
+        </div>
+        {status === "idle" && (
+          <button
+            onClick={generate}
+            style={{ padding: "8px 14px", background: T.accent, color: T.accentFg, border: "none", borderRadius: T.radius, fontSize: 13, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
+          >
+            Générer →
+          </button>
+        )}
+        {status === "loading" && (
+          <span style={{ fontSize: 12, color: T.muted }}>Génération…</span>
+        )}
+        {status === "error" && (
+          <button onClick={generate} style={{ padding: "8px 14px", background: "transparent", color: T.red, border: `1px solid ${T.red}40`, borderRadius: T.radius, fontSize: 13, cursor: "pointer" }}>
+            Réessayer
+          </button>
+        )}
+      </div>
+      {status === "done" && guide && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {[
+            { key: "budget", label: "Budget mensuel", content: guide.budget },
+            { key: "logement", label: "Logement", content: guide.logement },
+            { key: "culture", label: "Culture & conseils", content: guide.culture },
+          ].map(({ key, icon, label, content }) => (
+            <div key={key} style={{ padding: "12px 14px", background: T.bgHover, borderRadius: T.radius }}>
+              <p style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 600, color: T.text }}>{icon} {label}</p>
+              <p style={{ margin: 0, fontSize: 13, color: T.muted, lineHeight: 1.6 }}>{content}</p>
+            </div>
+          ))}
+          <p style={{ margin: 0, fontSize: 11, color: T.faint, textAlign: "center" }}>Généré par IA · à vérifier</p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ── SEMESTER BUTTON ───────────────────────────────────────────────────────────
