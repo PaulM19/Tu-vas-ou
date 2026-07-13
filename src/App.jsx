@@ -548,7 +548,7 @@ export default function App() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 32 }}>
           {[
             { value: stats.total, label: "étudiants inscrits" },
-            { value: stats.countries || "32", label: "pays disponibles" },
+            { value: stats.countries || "32", label: "pays déjà représentés" },
           ].map(({ value, label }) => (
             <div key={label} style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, padding: "16px", textAlign: "center", boxShadow: T.shadow }}>
               <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.5px" }}>{value}</p>
