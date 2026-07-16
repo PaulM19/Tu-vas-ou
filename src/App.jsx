@@ -21,7 +21,13 @@ async function sbFetch(path, options = {}) {
 }
 
 async function getStudentsFromDB() {
-  return (await sbFetch("students?select=*&order=created_at.asc")) || [];
+  // Lecture publique sans WhatsApp
+  return (await sbFetch("students?select=id,created_at,first_name,last_name,email,semester,school,city,country,looking_for,is_seeded&order=created_at.asc")) || [];
+}
+
+async function getStudentsWithWhatsapp(school) {
+  // WhatsApp uniquement pour les matchs d'une même destination
+  return (await sbFetch(`students?select=id,first_name,last_name,email,whatsapp,semester,school,city,country,looking_for&school=eq.${encodeURIComponent(school)}&order=created_at.asc`)) || [];
 }
 
 async function insertStudent(s) {
@@ -506,7 +512,10 @@ export default function App() {
       const students = mapStudents(data);
       setAllStudents(students);
       const me = students.find((s) => s.email.toLowerCase() === form.email.toLowerCase());
-      const myMatches = students.filter((s) => s.id !== me.id && s.destination.school === me.destination.school);
+      // Récupérer les matchs avec WhatsApp
+      const matchData = await getStudentsWithWhatsapp(form.destination.school);
+      const matchStudents = mapStudents(matchData);
+      const myMatches = matchStudents.filter((s) => s.email.toLowerCase() !== form.email.toLowerCase());
       setRegistered(me);
       setMatches(myMatches);
       if (myMatches.length > 0) {
@@ -530,8 +539,10 @@ export default function App() {
       setAllStudents(students);
       const me = students.find((s) => s.email.toLowerCase() === lookupEmail.toLowerCase().trim());
       if (!me) { setError("Email introuvable. Vérifie ou inscris-toi."); setLoading(false); return; }
+      const matchData = await getStudentsWithWhatsapp(me.destination.school);
+      const matchStudents = mapStudents(matchData);
       setRegistered(me);
-      setMatches(students.filter((s) => s.id !== me.id && s.destination.school === me.destination.school));
+      setMatches(matchStudents.filter((s) => s.email.toLowerCase() !== me.email.toLowerCase()));
       setScreen("matches");
     } catch { setError("Une erreur est survenue."); }
     setLoading(false);
