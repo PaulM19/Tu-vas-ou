@@ -582,7 +582,7 @@ export default function App() {
         </div>
 
         <p style={{ marginTop: 24, fontSize: 12, color: T.faint, textAlign: "center" }}>
-          140 universités partenaires dans 32 pays ·{" "}
+          140 universités partenaires dans {stats.countries} pays ·{" "}
           <span onClick={() => setScreen("privacy")} style={{ textDecoration: "underline", cursor: "pointer" }}>Confidentialité</span>
         </p>
       </div>
@@ -787,7 +787,7 @@ export default function App() {
             <div>
               <p style={{ fontSize: 12, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" }}>Étape 3 sur 3</p>
               <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}>Ton WhatsApp</h2>
-              <p style={{ fontSize: 14, color: T.muted, margin: "0 0 28px" }}>Optionnel — mais tes matchs pourront te contacter directement.</p>
+              <p style={{ fontSize: 14, color: T.muted, margin: "0 0 28px" }}>Obligatoire — tes matchs pourront te contacter directement.</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={{ display: "flex", gap: 10 }}>
                   <select
@@ -805,22 +805,22 @@ export default function App() {
                     value={form.whatsappNumber}
                     onChange={(e) => setForm((f) => ({ ...f, whatsappNumber: e.target.value }))}
                     style={{ ...inputStyle, flex: 1 }}
+                    autoFocus
                   />
                 </div>
                 {error && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{error}</p>}
                 <button
-                  onClick={handleSubmit}
+                  onClick={() => {
+                    if (!form.whatsappNumber.trim()) {
+                      setError("Entre ton numéro WhatsApp pour continuer.");
+                      return;
+                    }
+                    handleSubmit();
+                  }}
                   disabled={loading}
-                  style={{ padding: "13px", background: T.accent, color: T.accentFg, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", width: "100%", opacity: loading ? 0.7 : 1 }}
+                  style={{ padding: "13px", background: form.whatsappNumber.trim() ? T.accent : T.border, color: form.whatsappNumber.trim() ? T.accentFg : T.faint, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", width: "100%", opacity: loading ? 0.7 : 1, transition: "all 0.15s" }}
                 >
                   {loading ? "Inscription en cours…" : "Voir mes matchs →"}
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={loading}
-                  style={{ padding: "12px", background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: T.radius, fontSize: 13, cursor: "pointer", width: "100%" }}
-                >
-                  Passer cette étape
                 </button>
               </div>
             </div>
@@ -887,7 +887,7 @@ export default function App() {
 
         {matches.length === 0 ? (
           <div style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, padding: "32px 20px", textAlign: "center", boxShadow: T.shadow }}>
-            <p style={{ fontSize: 32, margin: "0 0 12px" }}>🌍</p>
+            
             <p style={{ margin: 0, fontSize: 14, color: T.muted, lineHeight: 1.6 }}>Tu seras le premier à cette destination.<br />Reviens bientôt !</p>
             <button
               onClick={() => {
@@ -1034,9 +1034,9 @@ function DestinationGuideCard({ destination }) {
       {status === "done" && guide && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {[
-            { key: "budget", label: "Budget mensuel", content: guide.budget },
-            { key: "logement", label: "Logement", content: guide.logement },
-            { key: "culture", label: "Culture & conseils", content: guide.culture },
+            { key: "budget", icon: "", label: "Budget mensuel", content: guide.budget },
+            { key: "logement", icon: "", label: "Logement", content: guide.logement },
+            { key: "culture", icon: "", label: "Culture & conseils", content: guide.culture },
           ].map(({ key, icon, label, content }) => (
             <div key={key} style={{ padding: "12px 14px", background: T.bgHover, borderRadius: T.radius }}>
               <p style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 600, color: T.text }}>{icon} {label}</p>
