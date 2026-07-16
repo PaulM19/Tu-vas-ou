@@ -25,13 +25,21 @@ async function getStudentsFromDB() {
 }
 
 async function insertStudent(s) {
+  const email = s.email;
+  const baseName = email.replace(DOMAIN, "");
+
+  // Supprimer l'entrée seedée si elle existe (même base d'email)
+  await sbFetch(`students?email=eq.${encodeURIComponent(baseName + "+seed" + DOMAIN)}`, {
+    method: "DELETE",
+  }).catch(() => {});
+
   return sbFetch("students", {
     method: "POST",
     prefer: "return=representation",
     body: JSON.stringify({
       first_name: s.firstName,
       last_name: s.lastName,
-      email: s.email,
+      email: email,
       whatsapp: s.whatsappNumber
         ? `${s.countryCode || "+33"}${s.whatsappNumber.replace(/^0/, "")}`
         : null,
@@ -40,6 +48,7 @@ async function insertStudent(s) {
       school: s.destination.school,
       city: s.destination.city,
       country: s.destination.country,
+      is_seeded: false,
     }),
   });
 }
@@ -548,7 +557,7 @@ export default function App() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 32 }}>
           {[
             { value: stats.total, label: "étudiants inscrits" },
-            { value: stats.countries || "32", label: "pays déjà représentés" },
+            { value: stats.countries || "32", label: "pays disponibles" },
           ].map(({ value, label }) => (
             <div key={label} style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, padding: "16px", textAlign: "center", boxShadow: T.shadow }}>
               <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.5px" }}>{value}</p>
@@ -667,6 +676,7 @@ export default function App() {
                     if (!form.firstName.trim() || !form.lastName.trim()) { setError("Entre ton prénom et ton nom."); return; }
                     if (!form.email.endsWith(DOMAIN)) { setError("Utilise ton adresse @edu.em-lyon.com"); return; }
                     if (!form.consent) { setError("Tu dois accepter les conditions pour continuer."); return; }
+                    setError("");
                     setRegStep(2);
                   }}
                   disabled={!step1Valid()}
@@ -723,17 +733,6 @@ export default function App() {
                   </div>
                 )}
                 <div>
-                  <p style={{ fontSize: 13, color: T.muted, margin: "0 0 10px" }}>Semestre</p>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-                    {[["fall", "Fall"], ["spring", "Spring"], ["double", "Double diplôme"]].map(([val, label]) => {
-                      const active = form.semester === val;
-                      return (
-                        <SemButton key={val} label={label} active={active} onClick={() => setForm((f) => ({ ...f, semester: val }))} />
-                      );
-                    })}
-                  </div>
-                </div>
-                <div>
                   <p style={{ fontSize: 13, color: T.muted, margin: "0 0 10px" }}>Je cherche (optionnel)</p>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {[["coloc", "Une coloc"], ["amis", "Des amis"], ["conseils", "Des conseils"], ["activites", "Des activités"]].map(([val, label]) => {
@@ -757,6 +756,17 @@ export default function App() {
                         >
                           {label}
                         </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <p style={{ fontSize: 13, color: T.muted, margin: "0 0 10px" }}>Semestre</p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                    {[["fall", "Fall"], ["spring", "Spring"], ["double", "Double diplôme"]].map(([val, label]) => {
+                      const active = form.semester === val;
+                      return (
+                        <SemButton key={val} label={label} active={active} onClick={() => setForm((f) => ({ ...f, semester: val }))} />
                       );
                     })}
                   </div>
@@ -877,7 +887,7 @@ export default function App() {
 
         {matches.length === 0 ? (
           <div style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, padding: "32px 20px", textAlign: "center", boxShadow: T.shadow }}>
-            <p style={{ fontSize: 32, margin: "0 0 12px" }}></p>
+            <p style={{ fontSize: 32, margin: "0 0 12px" }}>🌍</p>
             <p style={{ margin: 0, fontSize: 14, color: T.muted, lineHeight: 1.6 }}>Tu seras le premier à cette destination.<br />Reviens bientôt !</p>
             <button
               onClick={() => {
