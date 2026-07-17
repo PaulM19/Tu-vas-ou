@@ -31,32 +31,26 @@ async function getStudentsWithWhatsapp(school) {
 }
 
 async function insertStudent(s) {
-  const email = s.email;
-  const baseName = email.replace(DOMAIN, "");
-
-  // Supprimer l'entrée seedée si elle existe (même base d'email)
-  await sbFetch(`students?email=eq.${encodeURIComponent(baseName + "+seed" + DOMAIN)}`, {
-    method: "DELETE",
-  }).catch(() => {});
-
-  return sbFetch("students", {
+  const res = await fetch("/api/register", {
     method: "POST",
-    prefer: "return=representation",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      first_name: s.firstName,
-      last_name: s.lastName,
-      email: email,
+      firstName: s.firstName,
+      lastName: s.lastName,
+      email: s.email,
       whatsapp: s.whatsappNumber
         ? `${s.countryCode || "+33"}${s.whatsappNumber.replace(/^0/, "")}`
         : null,
       semester: s.semester,
-      looking_for: s.lookingFor?.join(",") || null,
-      school: s.destination.school,
-      city: s.destination.city,
-      country: s.destination.country,
-      is_seeded: false,
+      lookingFor: s.lookingFor || [],
+      destination: s.destination,
     }),
   });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || "Erreur lors de l'inscription.");
+  }
+  return res.json();
 }
 
 // ── DESTINATIONS ──────────────────────────────────────────────────────────────
@@ -465,6 +459,9 @@ export default function App() {
   const [screen, setScreen] = useState("home"); // home | register | lookup | matches | directory
   const [regStep, setRegStep] = useState(1); // 1=identity 2=destination 3=contact
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", destQuery: "", destination: null, semester: "fall", lookingFor: [], countryCode: "+33", whatsappNumber: "", consent: false });
+  const [verifCode, setVerifCode] = useState("");
+  const [verifError, setVerifError] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
   const [lookupEmail, setLookupEmail] = useState("");
   const [registered, setRegistered] = useState(null);
   const [matches, setMatches] = useState([]);
@@ -502,6 +499,39 @@ export default function App() {
   // Step validation
   function step1Valid() { return form.firstName.trim() && form.lastName.trim() && form.email.endsWith(DOMAIN) && form.consent; }
   function step2Valid() { return !!form.destination; }
+
+  async function sendVerifCode() {
+    setLoading(true);
+    setVerifError("");
+    try {
+      const res = await fetch("/api/send-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setVerifError(data.error); setLoading(false); return; }
+      setCodeSent(true);
+      setRegStep(2); // étape vérification
+    } catch { setVerifError("Erreur réseau. Réessaie."); }
+    setLoading(false);
+  }
+
+  async function verifyCode() {
+    setLoading(true);
+    setVerifError("");
+    try {
+      const res = await fetch("/api/verify-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email, code: verifCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setVerifError(data.error); setLoading(false); return; }
+      setRegStep(3); // destination
+    } catch { setVerifError("Erreur réseau. Réessaie."); }
+    setLoading(false);
+  }
 
   async function handleSubmit() {
     setError("");
@@ -613,7 +643,7 @@ export default function App() {
             ← {regStep === 1 ? "Retour" : "Étape précédente"}
           </button>
 
-          <ProgressBar step={regStep} total={3} />
+          <ProgressBar step={regStep} total={4} />
 
           {/* STEP 1 — Identité */}
           {regStep === 1 && (
@@ -688,21 +718,61 @@ export default function App() {
                     if (!form.email.endsWith(DOMAIN)) { setError("Utilise ton adresse @edu.em-lyon.com"); return; }
                     if (!form.consent) { setError("Tu dois accepter les conditions pour continuer."); return; }
                     setError("");
-                    setRegStep(2);
+                    sendVerifCode();
                   }}
-                  disabled={!step1Valid()}
-                  style={{ padding: "13px", background: step1Valid() ? T.accent : T.border, color: step1Valid() ? T.accentFg : T.faint, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: step1Valid() ? "pointer" : "not-allowed", width: "100%", transition: "all 0.15s" }}
+                  disabled={!step1Valid() || loading}
+                  style={{ padding: "13px", background: step1Valid() ? T.accent : T.border, color: step1Valid() ? T.accentFg : T.faint, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: step1Valid() ? "pointer" : "not-allowed", width: "100%", transition: "all 0.15s", opacity: loading ? 0.7 : 1 }}
                 >
-                  Continuer →
+                  {loading ? "Envoi du code…" : "Vérifier mon email →"}
                 </button>
               </div>
             </div>
           )}
 
-          {/* STEP 2 — Destination */}
+          {/* STEP 2 — Vérification email */}
           {regStep === 2 && (
             <div>
-              <p style={{ fontSize: 12, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" }}>Étape 2 sur 3</p>
+              <p style={{ fontSize: 12, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" }}>Étape 2 sur 4</p>
+              <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}>Vérifie ton email</h2>
+              <p style={{ fontSize: 14, color: T.muted, margin: "0 0 6px" }}>
+                On a envoyé un code à 4 chiffres à
+              </p>
+              <p style={{ fontSize: 14, fontWeight: 600, color: T.text, margin: "0 0 28px" }}>{form.email}</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="_ _ _ _"
+                  value={verifCode}
+                  onChange={e => setVerifCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  onKeyDown={e => e.key === "Enter" && verifCode.length === 4 && verifyCode()}
+                  autoFocus
+                  style={{ ...inputStyle, fontSize: 28, fontWeight: 700, letterSpacing: 16, textAlign: "center" }}
+                />
+                {verifError && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{verifError}</p>}
+                <button
+                  onClick={verifyCode}
+                  disabled={loading || verifCode.length !== 4}
+                  style={{ padding: "13px", background: verifCode.length === 4 ? T.accent : T.border, color: verifCode.length === 4 ? T.accentFg : T.faint, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: verifCode.length === 4 ? "pointer" : "not-allowed", width: "100%", opacity: loading ? 0.7 : 1 }}
+                >
+                  {loading ? "Vérification…" : "Confirmer →"}
+                </button>
+                <button
+                  onClick={() => { setVerifCode(""); sendVerifCode(); }}
+                  disabled={loading}
+                  style={{ padding: "10px", background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: T.radius, fontSize: 13, cursor: "pointer", width: "100%" }}
+                >
+                  Renvoyer le code
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3 — Destination */}
+          {regStep === 3 && (
+            <div>
+              <p style={{ fontSize: 12, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" }}>Étape 3 sur 4</p>
               <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}>Tu pars où ?</h2>
               <p style={{ fontSize: 14, color: T.muted, margin: "0 0 28px" }}>Tape le pays, la ville ou le nom de l'école.</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -783,7 +853,7 @@ export default function App() {
                   </div>
                 </div>
                 <button
-                  onClick={() => step2Valid() && setRegStep(3)}
+                  onClick={() => step2Valid() && setRegStep(4)}
                   disabled={!step2Valid()}
                   style={{ padding: "13px", background: step2Valid() ? T.accent : T.border, color: step2Valid() ? T.accentFg : T.faint, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: step2Valid() ? "pointer" : "not-allowed", width: "100%", transition: "all 0.15s" }}
                 >
@@ -793,10 +863,10 @@ export default function App() {
             </div>
           )}
 
-          {/* STEP 3 — Contact */}
-          {regStep === 3 && (
+          {/* STEP 4 — Contact */}
+          {regStep === 4 && (
             <div>
-              <p style={{ fontSize: 12, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" }}>Étape 3 sur 3</p>
+              <p style={{ fontSize: 12, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" }}>Étape 4 sur 4</p>
               <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}>Ton WhatsApp</h2>
               <p style={{ fontSize: 14, color: T.muted, margin: "0 0 28px" }}>Obligatoire — tes matchs pourront te contacter directement.</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
