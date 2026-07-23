@@ -626,7 +626,7 @@ export default function App() {
                   style={{ ...inputStyle, width: 110, flexShrink: 0, paddingRight: 8, appearance: "none", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236f6f6b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center" }}>
                   {COUNTRY_CODES.map(([code, label]) => <option key={code + label} value={code}>{label} {code}</option>)}
                 </select>
-                <input type="tel" placeholder="06 12 34 56 78" value={form.whatsappNumber} autoFocus
+                <input type="text" inputMode="tel" placeholder="06 12 34 56 78" value={form.whatsappNumber} autoFocus
                   onChange={e => setForm(f => ({ ...f, whatsappNumber: e.target.value }))} style={{ ...inputStyle, flex: 1 }} />
               </div>
               {error && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{error}</p>}
