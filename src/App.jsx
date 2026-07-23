@@ -440,7 +440,6 @@ export default function App() {
       setScreen("matches");
     } catch (e) {
       setError(e.message || "Une erreur est survenue.");
-      setRegStep(1);
     }
     setLoading(false);
   }
