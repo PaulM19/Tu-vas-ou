@@ -405,7 +405,7 @@ export default function App() {
       const res = await fetch("/api/send-code", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: form.email }) });
       const data = await res.json();
       if (!res.ok) { setVerifError(data.error); setLoading(false); return; }
-      setRegStep(2);
+      setScreen("verify");
     } catch { setVerifError("Erreur réseau. Réessaie."); }
     setLoading(false);
   }
@@ -416,7 +416,7 @@ export default function App() {
       const res = await fetch("/api/verify-code", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: form.email, code: verifCode }) });
       const data = await res.json();
       if (!res.ok) { setVerifError(data.error); setLoading(false); return; }
-      setRegStep(3);
+      setScreen("destination");
     } catch { setVerifError("Erreur réseau. Réessaie."); }
     setLoading(false);
   }
@@ -607,7 +607,7 @@ export default function App() {
                   ))}
                 </div>
               </div>
-              <button onClick={() => step2Valid() && setRegStep(4)} disabled={!step2Valid()}
+              <button onClick={() => step2Valid() && setScreen("whatsapp")} disabled={!step2Valid()}
                 style={{ padding: "13px", background: step2Valid() ? T.accent : T.border, color: step2Valid() ? T.accentFg : T.faint, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: step2Valid() ? "pointer" : "not-allowed", width: "100%" }}>
                 Continuer →
               </button>
@@ -615,32 +615,44 @@ export default function App() {
           </div>
         )}
 
-        {regStep === 4 && (
-          <div>
-            <p style={{ fontSize: 12, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" }}>Étape 4 sur 4</p>
-            <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}>Ton WhatsApp</h2>
-            <p style={{ fontSize: 14, color: T.muted, margin: "0 0 28px" }}>Obligatoire — tes matchs pourront te contacter directement.</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <p style={{ margin: 0, fontSize: 13, color: T.muted }}>Inclus l'indicatif si tu n'es pas en France (ex: +34 6 12 34 56 78)</p>
-                <input
-                  type="text"
-                  placeholder="+33 6 12 34 56 78"
-                  value={form.whatsappNumber}
-                  autoFocus
-                  pattern=".*"
-                  onChange={e => setForm(f => ({ ...f, whatsappNumber: e.target.value }))}
-                  style={inputStyle}
-                />
-              </div>
-              {error && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{error}</p>}
-              <button onClick={() => { if (!form.whatsappNumber.trim()) { setError("Entre ton numéro WhatsApp pour continuer."); return; } handleSubmit(); }} disabled={loading}
-                style={{ padding: "13px", background: form.whatsappNumber.trim() ? T.accent : T.border, color: form.whatsappNumber.trim() ? T.accentFg : T.faint, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: "pointer", width: "100%", opacity: loading ? 0.7 : 1, transition: "all 0.15s" }}>
-                {loading ? "Inscription en cours…" : "Voir mes matchs →"}
-              </button>
-            </div>
-          </div>
-        )}
+      </div>
+    </div>
+  );
+
+  // ── WHATSAPP (étape 4 isolée pour Safari) ──
+  if (screen === "whatsapp") return (
+    <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem 1rem" }}>
+      <div style={{ width: "100%", maxWidth: 420 }}>
+        <button onClick={() => setScreen("register")} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 13, padding: "0 0 24px", display: "flex", alignItems: "center", gap: 4 }}>
+          ← Étape précédente
+        </button>
+        <ProgressBar step={4} total={4} />
+        <p style={{ fontSize: 12, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" }}>Étape 4 sur 4</p>
+        <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}>Ton WhatsApp</h2>
+        <p style={{ fontSize: 14, color: T.muted, margin: "0 0 28px" }}>Obligatoire — tes matchs pourront te contacter directement.</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <p style={{ margin: 0, fontSize: 13, color: T.muted }}>Ton numéro (avec indicatif si hors France)</p>
+          <input
+            type="text"
+            placeholder="+33 6 12 34 56 78"
+            value={form.whatsappNumber}
+            autoFocus
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            onChange={e => setForm(f => ({ ...f, whatsappNumber: e.target.value }))}
+            style={inputStyle}
+          />
+          {error && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{error}</p>}
+          <button
+            onClick={() => { if (!form.whatsappNumber.trim()) { setError("Entre ton numéro WhatsApp pour continuer."); return; } handleSubmit(); }}
+            disabled={loading}
+            style={{ padding: "13px", background: form.whatsappNumber.trim() ? T.accent : T.border, color: form.whatsappNumber.trim() ? T.accentFg : T.faint, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: "pointer", width: "100%", opacity: loading ? 0.7 : 1, transition: "all 0.15s" }}
+          >
+            {loading ? "Inscription en cours…" : "Voir mes matchs →"}
+          </button>
+        </div>
       </div>
     </div>
   );
