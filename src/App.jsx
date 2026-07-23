@@ -36,7 +36,7 @@ async function insertStudent(s) {
       firstName: s.firstName,
       lastName: s.lastName,
       email: s.email,
-      whatsapp: s.whatsappNumber?.trim() || null,
+      whatsapp: s.whatsappNumber ? `${s.countryCode || "+33"}${s.whatsappNumber.replace(/^0/, "")}` : null,
       semester: s.semester,
       lookingFor: s.lookingFor || [],
       destination: s.destination,
@@ -250,36 +250,26 @@ function ProgressBar({ step, total }) {
 }
 
 function EmailInput({ value, onChange, onEnter }) {
+  const showPill = value.length > 0 && !value.includes("@");
   const ref = useRef(null);
-  const localPart = value.includes("@") ? value.split("@")[0] : value;
-
-  function handleChange(e) {
-    const v = e.target.value.replace(/@.*/, "");
-    onChange(v ? v + DOMAIN : "");
-  }
-
+  function complete() { if (value.length > 0 && !value.includes("@")) onChange(value + DOMAIN); }
   function handleKey(e) {
-    if (e.key === "Enter" && onEnter) setTimeout(onEnter, 50);
+    if ((e.key === "Tab" || e.key === "ArrowRight") && showPill) { e.preventDefault(); complete(); }
+    if (e.key === "Enter") { complete(); if (onEnter) setTimeout(onEnter, 50); }
   }
-
   return (
-    <div style={{ display: "flex", alignItems: "center", border: `1px solid ${T.border}`, borderRadius: T.radius, background: T.bgCard, height: 44 }}>
-      <input
-        ref={ref}
-        type="text"
-        placeholder="prenom.nom"
-        value={localPart}
-        onChange={handleChange}
-        onKeyDown={handleKey}
-        autoComplete="off"
-        autoCapitalize="none"
-        autoCorrect="off"
-        spellCheck="false"
-        style={{ flex: 1, height: "100%", border: "none", outline: "none", padding: "0 0 0 14px", fontSize: 15, fontFamily: "inherit", background: "transparent", color: T.text }}
-      />
-      <span style={{ fontSize: 15, color: T.muted, padding: "0 14px 0 4px", whiteSpace: "nowrap" }}>
-        @edu.em-lyon.com
-      </span>
+    <div style={{ position: "relative" }}>
+      <input type="text" placeholder="prenom.nom@edu.em-lyon.com" value={value}
+        onChange={e => onChange(e.target.value)} onKeyDown={handleKey} onBlur={complete}
+        autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck="false"
+        pattern=".*"
+        style={{ ...inputStyle, paddingRight: showPill ? 200 : 14 }} ref={ref} />
+      {showPill && (
+        <div onMouseDown={e => { e.preventDefault(); complete(); ref.current?.focus(); }}
+          style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "#f0f0ed", color: T.muted, fontSize: 12, padding: "3px 8px", borderRadius: 6, cursor: "pointer", userSelect: "none", whiteSpace: "nowrap", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis" }}>
+          {value + DOMAIN}
+        </div>
+      )}
     </div>
   );
 }
@@ -536,16 +526,14 @@ export default function App() {
                 <p style={{ margin: "6px 0 0", fontSize: 12, color: T.faint }}>{form.firstName && form.lastName ? "Généré automatiquement — modifie si besoin" : "Remplis prénom et nom pour générer ton email"}</p>
               </div>
               {error && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{error}</p>}
-              <div onClick={() => setForm(f => ({ ...f, consent: !f.consent }))} style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", padding: "12px 14px", background: T.bgHover, borderRadius: T.radius, border: `1px solid ${T.border}` }}>
-                <div style={{ marginTop: 2, width: 16, height: 16, flexShrink: 0, borderRadius: 4, border: `2px solid ${form.consent ? T.accent : T.borderStrong}`, background: form.consent ? T.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>
-                  {form.consent && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                </div>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", padding: "12px 14px", background: T.bgHover, borderRadius: T.radius, border: `1px solid ${T.border}` }}>
+                <input type="checkbox" checked={form.consent} onChange={e => setForm(f => ({ ...f, consent: e.target.checked }))} style={{ marginTop: 2, width: 16, height: 16, flexShrink: 0, cursor: "pointer" }} />
                 <span style={{ fontSize: 13, color: T.muted, lineHeight: 1.5 }}>
                   J'accepte que mes données (nom, email, destination, WhatsApp) soient partagées uniquement avec les étudiants emlyon partant à la même destination.{" "}
-                  <span onClick={e => { e.stopPropagation(); setScreen("privacy"); }} style={{ color: T.text, textDecoration: "underline", cursor: "pointer" }}>Politique de confidentialité</span>
+                  <span onClick={e => { e.preventDefault(); setScreen("privacy"); }} style={{ color: T.text, textDecoration: "underline", cursor: "pointer" }}>Politique de confidentialité</span>
                 </span>
-              </div>
-              <button onClick={(e) => { e.preventDefault(); setError(""); if (!form.firstName.trim() || !form.lastName.trim()) { setError("Entre ton prénom et ton nom."); return; } if (!form.email.endsWith(DOMAIN)) { setError("Utilise ton adresse @edu.em-lyon.com"); return; } if (!form.consent) { setError("Tu dois accepter les conditions pour continuer."); return; } setError(""); setRegStep(2); }}
+              </label>
+              <button onClick={(e) => { e.preventDefault(); setError(""); if (!form.firstName.trim() || !form.lastName.trim()) { setError("Entre ton prénom et ton nom."); return; } if (!form.email.endsWith(DOMAIN)) { setError("Utilise ton adresse @edu.em-lyon.com"); return; } if (!form.consent) { setError("Tu dois accepter les conditions pour continuer."); return; } setError(""); sendVerifCode(); }}
                 disabled={!step1Valid() || loading}
                 style={{ padding: "13px", background: step1Valid() ? T.accent : T.border, color: step1Valid() ? T.accentFg : T.faint, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: step1Valid() ? "pointer" : "not-allowed", width: "100%", opacity: loading ? 0.7 : 1 }}>
                 {loading ? "Envoi du code…" : "Vérifier mon email →"}
@@ -634,17 +622,13 @@ export default function App() {
             <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}>Ton WhatsApp</h2>
             <p style={{ fontSize: 14, color: T.muted, margin: "0 0 28px" }}>Obligatoire — tes matchs pourront te contacter directement.</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <p style={{ margin: 0, fontSize: 13, color: T.muted }}>Inclus l'indicatif pays si tu n'es pas en France</p>
-                <input
-                  type="text"
-                  inputMode="tel"
-                  placeholder="+33 6 12 34 56 78"
-                  value={form.whatsappNumber}
-                  autoFocus
-                  onChange={e => setForm(f => ({ ...f, whatsappNumber: e.target.value }))}
-                  style={inputStyle}
-                />
+              <div style={{ display: "flex", gap: 10 }}>
+                <select value={form.countryCode} onChange={e => setForm(f => ({ ...f, countryCode: e.target.value }))}
+                  style={{ ...inputStyle, width: 110, flexShrink: 0, paddingRight: 8, appearance: "none", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236f6f6b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center" }}>
+                  {COUNTRY_CODES.map(([code, label]) => <option key={code + label} value={code}>{label} {code}</option>)}
+                </select>
+                <input type="text" inputMode="tel" placeholder="06 12 34 56 78" value={form.whatsappNumber} autoFocus
+                  onChange={e => setForm(f => ({ ...f, whatsappNumber: e.target.value }))} style={{ ...inputStyle, flex: 1 }} />
               </div>
               {error && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{error}</p>}
               <button onClick={() => { if (!form.whatsappNumber.trim()) { setError("Entre ton numéro WhatsApp pour continuer."); return; } handleSubmit(); }} disabled={loading}
