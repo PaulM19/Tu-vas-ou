@@ -625,7 +625,6 @@ export default function App() {
                 <p style={{ margin: 0, fontSize: 13, color: T.muted }}>Inclus l'indicatif si tu n'es pas en France (ex: +34 6 12 34 56 78)</p>
                 <input
                   type="text"
-                  inputMode="tel"
                   placeholder="+33 6 12 34 56 78"
                   value={form.whatsappNumber}
                   autoFocus
