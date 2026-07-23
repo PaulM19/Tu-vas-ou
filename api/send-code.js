@@ -1,28 +1,9 @@
-const SUPABASE_URL = "https://fckolgfthpkjmtviysba.supabase.co";
-
-async function sbFetch(path, options = {}) {
-  const key = "sb_publishable_nX8bK2lPKzaRBWzuGut5JQ_yyiSgE-8";
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...options,
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-      Prefer: options.prefer || "",
-    },
-  });
-  const text = await res.text();
-  return { ok: res.ok, data: text ? JSON.parse(text) : null };
-}
-
 async function sendEmail(to, subject, html) {
+  if (to.includes("+seed")) return;
   const BREVO_KEY = process.env.BREVO_API_KEY;
-  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+  await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
-    headers: {
-      "api-key": BREVO_KEY,
-      "Content-Type": "application/json",
-    },
+    headers: { "api-key": BREVO_KEY, "Content-Type": "application/json" },
     body: JSON.stringify({
       sender: { name: "Tu pars où en échange ?", email: "monzatpaul@gmail.com" },
       to: [{ email: to }],
@@ -30,56 +11,82 @@ async function sendEmail(to, subject, html) {
       htmlContent: html,
     }),
   });
-  const text = await res.text();
-  console.log("Brevo response:", res.status, text);
-  return res.ok;
 }
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { email } = req.body;
-  if (!email || !email.toLowerCase().trim().endsWith("@edu.em-lyon.com")) {
-    return res.status(403).json({ error: "Adresse email emlyon requise." });
+  const { newStudent, matches } = req.body;
+  if (!process.env.BREVO_API_KEY) return res.status(500).json({ error: "Missing API key" });
+
+  const dest = newStudent.destination.school;
+  const city = newStudent.destination.city;
+  const country = newStudent.destination.country;
+  const semLabel = { fall: "Fall", spring: "Spring", double: "Double diplôme" }[newStudent.semester] || newStudent.semester;
+
+  const baseStyle = `font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:480px;margin:0 auto;padding:2rem 1rem;color:#111110`;
+  const mutedStyle = `color:#6f6f6b;font-size:14px;line-height:1.6`;
+  const cardStyle = `padding:14px 16px;border:1px solid rgba(0,0,0,0.09);border-radius:10px;margin-bottom:1rem`;
+  const waBtn = (whatsapp) => whatsapp
+    ? `<a href="https://wa.me/${whatsapp.replace(/\D/g,"")}" style="display:inline-block;margin-top:10px;padding:8px 16px;background:#25D366;color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600">Contacter sur WhatsApp</a>`
+    : "";
+  const footer = `<div style="margin-top:2rem;padding-top:1rem;border-top:1px solid rgba(0,0,0,0.09)"><p style="${mutedStyle}">Retrouve tous tes matchs sur <a href="https://tu-pars-ou.vercel.app" style="color:#111110;font-weight:500">tu-pars-ou.vercel.app</a></p></div>`;
+
+  const realMatches = matches.filter(m => !m.email?.includes("+seed"));
+
+  if (realMatches.length > 0) {
+    const matchList = realMatches.map(m => `
+      <div style="${cardStyle}">
+        <p style="margin:0 0 2px;font-weight:600;font-size:15px">${m.firstName} ${m.lastName}</p>
+        <p style="margin:0;${mutedStyle}">${{ fall: "Fall", spring: "Spring", double: "Double diplôme" }[m.semester] || m.semester}</p>
+        ${waBtn(m.whatsapp)}
+      </div>`).join("");
+
+    await sendEmail(
+      newStudent.email,
+      `${realMatches.length} étudiant${realMatches.length > 1 ? "s" : ""} part${realMatches.length > 1 ? "ent" : ""} avec toi à ${city}`,
+      `<div style="${baseStyle}">
+        <p style="font-size:13px;font-weight:600;color:#6f6f6b;text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px">Tu pars où en échange ?</p>
+        <h1 style="font-size:22px;font-weight:700;margin:0 0 8px;letter-spacing:-0.3px">Bienvenue !</h1>
+        <p style="margin:0 0 1.5rem;${mutedStyle}">Tu t'es inscrit pour <strong style="color:#111110">${dest}</strong> · ${city}, ${country} · ${semLabel}</p>
+        <p style="font-weight:600;margin:0 0 12px;font-size:15px">${realMatches.length} étudiant${realMatches.length > 1 ? "s" : ""} part${realMatches.length > 1 ? "ent" : ""} au même endroit :</p>
+        ${matchList}
+        ${footer}
+      </div>`
+    );
+  } else {
+    await sendEmail(
+      newStudent.email,
+      `Inscription confirmée — ${dest}`,
+      `<div style="${baseStyle}">
+        <p style="font-size:13px;font-weight:600;color:#6f6f6b;text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px">Tu pars où en échange ?</p>
+        <h1 style="font-size:22px;font-weight:700;margin:0 0 8px;letter-spacing:-0.3px">Inscription confirmée !</h1>
+        <p style="margin:0 0 1.5rem;${mutedStyle}">Tu t'es inscrit pour <strong style="color:#111110">${dest}</strong> · ${city}, ${country} · ${semLabel}</p>
+        <p style="${mutedStyle}">Tu es le premier pour cette destination. On t'enverra un email dès que quelqu'un d'autre s'inscrit.</p>
+        ${footer}
+      </div>`
+    );
   }
 
-  const cleanEmail = email.toLowerCase().trim();
-
-  const { data: existing } = await sbFetch(
-    `verification_codes?email=eq.${encodeURIComponent(cleanEmail)}&select=created_at&order=created_at.desc&limit=1`
-  );
-  if (existing?.length > 0) {
-    const lastSent = new Date(existing[0].created_at).getTime();
-    if (Date.now() - lastSent < 60000) {
-      return res.status(429).json({ error: "Un code a déjà été envoyé. Attends 1 minute." });
-    }
+  for (const match of matches) {
+    if (!match.email || match.email.includes("+seed")) continue;
+    await sendEmail(
+      match.email,
+      `Nouveau : ${newStudent.firstName} part aussi à ${city}`,
+      `<div style="${baseStyle}">
+        <p style="font-size:13px;font-weight:600;color:#6f6f6b;text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px">Tu pars où en échange ?</p>
+        <h1 style="font-size:22px;font-weight:700;margin:0 0 8px;letter-spacing:-0.3px">Nouveau match !</h1>
+        <p style="margin:0 0 1.5rem;${mutedStyle}"><strong style="color:#111110">${newStudent.firstName} ${newStudent.lastName}</strong> vient de s'inscrire pour <strong style="color:#111110">${dest}</strong> · ${city}.</p>
+        <div style="${cardStyle}">
+          <p style="margin:0 0 2px;font-weight:600;font-size:15px">${newStudent.firstName} ${newStudent.lastName}</p>
+          <p style="margin:0;${mutedStyle}">${semLabel}</p>
+          ${waBtn(newStudent.whatsapp)}
+        </div>
+        <a href="https://tu-pars-ou.vercel.app" style="display:block;text-align:center;padding:12px;background:#111110;color:#fff;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;margin-top:8px">Voir tous mes matchs</a>
+        ${footer}
+      </div>`
+    );
   }
 
-  const code = String(Math.floor(1000 + Math.random() * 9000));
-  const expiresAt = new Date(Date.now() + 600000).toISOString();
-
-  await sbFetch(`verification_codes?email=eq.${encodeURIComponent(cleanEmail)}`, { method: "DELETE" });
-  await sbFetch("verification_codes", {
-    method: "POST",
-    prefer: "return=minimal",
-    body: JSON.stringify({ email: cleanEmail, code, expires_at: expiresAt }),
-  });
-
-  const sent = await sendEmail(
-    cleanEmail,
-    `Ton code de vérification : ${code}`,
-    `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:420px;margin:0 auto;padding:2rem 1rem;color:#111110">
-      <p style="font-size:13px;font-weight:600;color:#6f6f6b;text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px">Tu pars où en échange ?</p>
-      <h1 style="font-size:22px;font-weight:700;margin:0 0 8px;letter-spacing:-0.3px">Vérifie ton adresse</h1>
-      <p style="color:#6f6f6b;font-size:14px;line-height:1.6;margin:0 0 2rem">Entre ce code dans l'application pour confirmer que tu es bien étudiant emlyon.</p>
-      <div style="background:#f5f4f0;border-radius:12px;padding:2rem;text-align:center;margin-bottom:2rem">
-        <p style="font-size:48px;font-weight:700;letter-spacing:16px;margin:0;color:#111110">${code}</p>
-      </div>
-      <p style="color:#9e9e9e;font-size:12px;margin:0">Expire dans 10 minutes. Si tu n'as pas demandé ce code, ignore cet email.</p>
-    </div>`
-  );
-
-  if (!sent) return res.status(500).json({ error: "Impossible d'envoyer l'email. Réessaie." });
-
-  return res.status(200).json({ ok: true });
+  res.status(200).json({ ok: true });
 }
