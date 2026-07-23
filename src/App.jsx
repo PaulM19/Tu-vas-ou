@@ -500,7 +500,7 @@ export default function App() {
   // ── REGISTER ──
   if (screen === "register") return (
     <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem 1rem" }}>
-      <form noValidate onSubmit={e => e.preventDefault()} style={{ width: "100%", maxWidth: 420 }}>
+      <div style={{ width: "100%", maxWidth: 420 }}>
         <button onClick={() => { if (regStep === 1) setScreen("home"); else setRegStep(s => s - 1); setError(""); setVerifError(""); }} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 13, padding: "0 0 24px", display: "flex", alignItems: "center", gap: 4 }}>
           ← {regStep === 1 ? "Retour" : "Étape précédente"}
         </button>
@@ -628,6 +628,7 @@ export default function App() {
                   placeholder="+33 6 12 34 56 78"
                   value={form.whatsappNumber}
                   autoFocus
+                  pattern=".*"
                   onChange={e => setForm(f => ({ ...f, whatsappNumber: e.target.value }))}
                   style={inputStyle}
                 />
@@ -640,7 +641,7 @@ export default function App() {
             </div>
           </div>
         )}
-      </form>
+      </div>
     </div>
   );
 
