@@ -5,7 +5,7 @@ async function sendEmail(to, subject, html) {
     method: "POST",
     headers: { "api-key": BREVO_KEY, "Content-Type": "application/json" },
     body: JSON.stringify({
-      sender: { name: "Tu pars où en échange ?", email: "noreply@tu-pars-ou.vercel.app" },
+      sender: { name: "Tu pars où en échange ?", email: "monzatpaul@gmail.com" },
       to: [{ email: to }],
       subject,
       htmlContent: html,
