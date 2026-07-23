@@ -250,26 +250,37 @@ function ProgressBar({ step, total }) {
 }
 
 function EmailInput({ value, onChange, onEnter }) {
-  const showPill = value.length > 0 && !value.includes("@");
   const ref = useRef(null);
-  function complete() { if (value.length > 0 && !value.includes("@")) onChange(value + DOMAIN); }
-  function handleKey(e) {
-    if ((e.key === "Tab" || e.key === "ArrowRight") && showPill) { e.preventDefault(); complete(); }
-    if (e.key === "Enter") { complete(); if (onEnter) setTimeout(onEnter, 50); }
+  // On stocke uniquement la partie avant le @ dans le champ visible
+  const localPart = value.includes("@") ? value.split("@")[0] : value;
+
+  function handleChange(e) {
+    const v = e.target.value.replace(/@.*/, ""); // jamais de @ dans le champ
+    onChange(v + DOMAIN);
   }
+
+  function handleKey(e) {
+    if (e.key === "Enter" && onEnter) setTimeout(onEnter, 50);
+  }
+
   return (
-    <div style={{ position: "relative" }}>
-      <input type="text" placeholder="prenom.nom@edu.em-lyon.com" value={value}
-        onChange={e => onChange(e.target.value)} onKeyDown={handleKey} onBlur={complete}
-        autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck="false"
-        pattern=".*"
-        style={{ ...inputStyle, paddingRight: showPill ? 200 : 14 }} ref={ref} />
-      {showPill && (
-        <div onMouseDown={e => { e.preventDefault(); complete(); ref.current?.focus(); }}
-          style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "#f0f0ed", color: T.muted, fontSize: 12, padding: "3px 8px", borderRadius: 6, cursor: "pointer", userSelect: "none", whiteSpace: "nowrap", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis" }}>
-          {value + DOMAIN}
-        </div>
-      )}
+    <div style={{ position: "relative", display: "flex", alignItems: "center", border: `1px solid ${T.border}`, borderRadius: T.radius, background: T.bgCard, height: 44, overflow: "hidden" }}>
+      <input
+        ref={ref}
+        type="text"
+        placeholder="prenom.nom"
+        value={localPart}
+        onChange={handleChange}
+        onKeyDown={handleKey}
+        autoComplete="off"
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck="false"
+        style={{ flex: 1, height: "100%", border: "none", outline: "none", padding: "0 0 0 14px", fontSize: 15, fontFamily: "inherit", background: "transparent", color: T.text, minWidth: 0 }}
+      />
+      <span style={{ fontSize: 15, color: T.muted, padding: "0 14px 0 0", whiteSpace: "nowrap", flexShrink: 0 }}>
+        @edu.em-lyon.com
+      </span>
     </div>
   );
 }
