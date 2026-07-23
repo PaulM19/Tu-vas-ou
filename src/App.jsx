@@ -261,7 +261,8 @@ function EmailInput({ value, onChange, onEnter }) {
     <div style={{ position: "relative" }}>
       <input type="text" placeholder="prenom.nom@edu.em-lyon.com" value={value}
         onChange={e => onChange(e.target.value)} onKeyDown={handleKey} onBlur={complete}
-        autoComplete="off" autoCapitalize="none"
+        autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck="false"
+        pattern=".*"
         style={{ ...inputStyle, paddingRight: showPill ? 200 : 14 }} ref={ref} />
       {showPill && (
         <div onMouseDown={e => { e.preventDefault(); complete(); ref.current?.focus(); }}
