@@ -1,73 +1,89 @@
+async function sendEmail(to, subject, html) {
+  if (to.includes("+seed")) return;
+  const BREVO_KEY = process.env.BREVO_API_KEY;
+  await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: { "api-key": BREVO_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sender: { name: "Tu pars où en échange ?", email: "noreply@tu-pars-ou.vercel.app" },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    }),
+  });
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
   const { newStudent, matches } = req.body;
-  const RESEND_KEY = process.env.RESEND_API_KEY;
+  if (!process.env.BREVO_API_KEY) return res.status(500).json({ error: "Missing API key" });
 
-  if (!RESEND_KEY) return res.status(500).json({ error: "Missing API key" });
+  const dest = newStudent.destination.school;
+  const city = newStudent.destination.city;
+  const country = newStudent.destination.country;
+  const semLabel = { fall: "Fall", spring: "Spring", double: "Double diplôme" }[newStudent.semester] || newStudent.semester;
 
-  const send = async (to, subject, html) => {
-    await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${RESEND_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        from: "Tu pars où ? <onboarding@resend.dev>",
-        to,
-        subject,
-        html
-      })
-    });
-  };
+  const baseStyle = `font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:480px;margin:0 auto;padding:2rem 1rem;color:#111110`;
+  const mutedStyle = `color:#6f6f6b;font-size:14px;line-height:1.6`;
+  const cardStyle = `padding:14px 16px;border:1px solid rgba(0,0,0,0.09);border-radius:10px;margin-bottom:1rem`;
+  const waBtn = (whatsapp) => whatsapp
+    ? `<a href="https://wa.me/${whatsapp.replace(/\D/g,"")}" style="display:inline-block;margin-top:10px;padding:8px 16px;background:#25D366;color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600">Contacter sur WhatsApp</a>`
+    : "";
+  const footer = `<div style="margin-top:2rem;padding-top:1rem;border-top:1px solid rgba(0,0,0,0.09)"><p style="${mutedStyle}">Retrouve tous tes matchs sur <a href="https://tu-pars-ou.vercel.app" style="color:#111110;font-weight:500">tu-pars-ou.vercel.app</a></p></div>`;
 
-  const dest = `${newStudent.destination.school} – ${newStudent.destination.city}, ${newStudent.destination.country}`;
-  const semLabel = { fall: "Fall", spring: "Spring", both: "Fall & Spring" }[newStudent.semester] || newStudent.semester;
+  const realMatches = matches.filter(m => !m.email?.includes("+seed"));
 
-  // Email au nouvel inscrit avec la liste de ses matchs
-  if (matches.length > 0) {
-    const matchList = matches.map(m => `
-      <tr>
-        <td style="padding:10px 0;border-bottom:1px solid #f0efe9">
-          <strong>${m.firstName} ${m.lastName}</strong><br>
-          <span style="color:#6b6b6b;font-size:13px">${{ fall: "Fall", spring: "Spring", both: "Fall & Spring" }[m.semester] || m.semester}</span>
-          ${m.whatsapp ? `<br><a href="https://wa.me/${m.whatsapp.replace(/\s/g,"").replace(/^0/,"+33")}" style="color:#25D366;font-size:13px">Contacter sur WhatsApp</a>` : ""}
-        </td>
-      </tr>`).join("");
+  if (realMatches.length > 0) {
+    const matchList = realMatches.map(m => `
+      <div style="${cardStyle}">
+        <p style="margin:0 0 2px;font-weight:600;font-size:15px">${m.firstName} ${m.lastName}</p>
+        <p style="margin:0;${mutedStyle}">${{ fall: "Fall", spring: "Spring", double: "Double diplôme" }[m.semester] || m.semester}</p>
+        ${waBtn(m.whatsapp)}
+      </div>`).join("");
 
-    await send(
+    await sendEmail(
       newStudent.email,
-      ` ${matches.length} étudiant${matches.length > 1 ? "s" : ""} part${matches.length > 1 ? "ent" : ""} avec toi à ${newStudent.destination.city} !`,
-      `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem 1rem">
-        <h2 style="font-size:20px;font-weight:500;margin:0 0 8px">Tu pars où ? </h2>
-        <p style="color:#6b6b6b;margin:0 0 1.5rem">Tu viens de t'inscrire pour <strong>${dest}</strong> (${semLabel}).</p>
-        <p style="font-weight:500;margin:0 0 12px">${matches.length} étudiant${matches.length > 1 ? "s" : ""} part${matches.length > 1 ? "ent" : ""} au même endroit :</p>
-        <table style="width:100%;border-collapse:collapse">${matchList}</table>
-        <div style="margin-top:1.5rem;padding:12px 14px;background:#f7f7f5;border-radius:8px">
-          <p style="margin:0;font-size:13px;color:#6b6b6b">Retrouve tous tes matchs sur <a href="https://tu-pars-ou.vercel.app" style="color:#1a1a1a">tu-pars-ou.vercel.app</a></p>
-        </div>
+      `${realMatches.length} étudiant${realMatches.length > 1 ? "s" : ""} part${realMatches.length > 1 ? "ent" : ""} avec toi à ${city}`,
+      `<div style="${baseStyle}">
+        <p style="font-size:13px;font-weight:600;color:#6f6f6b;text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px">Tu pars où en échange ?</p>
+        <h1 style="font-size:22px;font-weight:700;margin:0 0 8px;letter-spacing:-0.3px">Bienvenue !</h1>
+        <p style="margin:0 0 1.5rem;${mutedStyle}">Tu t'es inscrit pour <strong style="color:#111110">${dest}</strong> · ${city}, ${country} · ${semLabel}</p>
+        <p style="font-weight:600;margin:0 0 12px;font-size:15px">${realMatches.length} étudiant${realMatches.length > 1 ? "s" : ""} part${realMatches.length > 1 ? "ent" : ""} au même endroit :</p>
+        ${matchList}
+        ${footer}
+      </div>`
+    );
+  } else {
+    await sendEmail(
+      newStudent.email,
+      `Inscription confirmée — ${dest}`,
+      `<div style="${baseStyle}">
+        <p style="font-size:13px;font-weight:600;color:#6f6f6b;text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px">Tu pars où en échange ?</p>
+        <h1 style="font-size:22px;font-weight:700;margin:0 0 8px;letter-spacing:-0.3px">Inscription confirmée !</h1>
+        <p style="margin:0 0 1.5rem;${mutedStyle}">Tu t'es inscrit pour <strong style="color:#111110">${dest}</strong> · ${city}, ${country} · ${semLabel}</p>
+        <p style="${mutedStyle}">Tu es le premier pour cette destination. On t'enverra un email dès que quelqu'un d'autre s'inscrit.</p>
+        ${footer}
       </div>`
     );
   }
 
-  // Email à chaque match existant pour les prévenir du nouvel inscrit
   for (const match of matches) {
-    if (!match.email) continue;
-    await send(
+    if (!match.email || match.email.includes("+seed")) continue;
+    await sendEmail(
       match.email,
-      ` Quelqu'un part avec toi à ${newStudent.destination.city} !`,
-      `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem 1rem">
-        <h2 style="font-size:20px;font-weight:500;margin:0 0 8px">Tu pars où ? </h2>
-        <p style="color:#6b6b6b;margin:0 0 1.5rem">Un nouvel étudiant vient de s'inscrire pour <strong>${dest}</strong> !</p>
-        <div style="padding:14px;border:0.5px solid #e5e7eb;border-radius:8px;margin-bottom:1.5rem">
-          <p style="margin:0 0 4px;font-weight:500">${newStudent.firstName} ${newStudent.lastName}</p>
-          <p style="margin:0;font-size:13px;color:#6b6b6b">${semLabel}</p>
-          ${newStudent.whatsapp ? `<a href="https://wa.me/${newStudent.whatsapp.replace(/\s/g,"").replace(/^0/,"+33")}" style="display:inline-block;margin-top:8px;padding:6px 12px;background:#25D366;color:#fff;border-radius:6px;text-decoration:none;font-size:13px">Contacter sur WhatsApp</a>` : ""}
+      `Nouveau : ${newStudent.firstName} part aussi à ${city}`,
+      `<div style="${baseStyle}">
+        <p style="font-size:13px;font-weight:600;color:#6f6f6b;text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px">Tu pars où en échange ?</p>
+        <h1 style="font-size:22px;font-weight:700;margin:0 0 8px;letter-spacing:-0.3px">Nouveau match !</h1>
+        <p style="margin:0 0 1.5rem;${mutedStyle}"><strong style="color:#111110">${newStudent.firstName} ${newStudent.lastName}</strong> vient de s'inscrire pour <strong style="color:#111110">${dest}</strong> · ${city}.</p>
+        <div style="${cardStyle}">
+          <p style="margin:0 0 2px;font-weight:600;font-size:15px">${newStudent.firstName} ${newStudent.lastName}</p>
+          <p style="margin:0;${mutedStyle}">${semLabel}</p>
+          ${waBtn(newStudent.whatsapp)}
         </div>
-        <div style="padding:12px 14px;background:#f7f7f5;border-radius:8px">
-          <p style="margin:0;font-size:13px;color:#6b6b6b">Retrouve tous tes matchs sur <a href="https://tu-pars-ou.vercel.app" style="color:#1a1a1a">tu-pars-ou.vercel.app</a></p>
-        </div>
+        <a href="https://tu-pars-ou.vercel.app" style="display:block;text-align:center;padding:12px;background:#111110;color:#fff;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;margin-top:8px">Voir tous mes matchs</a>
+        ${footer}
       </div>`
     );
   }
