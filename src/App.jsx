@@ -351,12 +351,17 @@ function StudentCard({ student }) {
                                 ))}
                     </div>
                   )}
-            {student.whatsapp && (
+            {student.whatsapp ? (
                     <a href={`https://wa.me/${student.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
                                 style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", padding: "9px", background: "#25D366", color: "#fff", borderRadius: T.radius, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
                                 Contacter sur WhatsApp
                     </a>
-                  )}
+                  ) : student.email ? (
+                    <a href={`mailto:${student.email}?subject=${encodeURIComponent("Tu pars où en échange ? — " + student.destination.school)}`}
+                                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", padding: "9px", background: T.accent, color: T.accentFg, borderRadius: T.radius, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+                                Contacter par email
+                    </a>
+                  ) : null}
           </div>
         );
 }
