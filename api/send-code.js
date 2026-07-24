@@ -1,5 +1,7 @@
 const SUPABASE_URL = "https://fckolgfthpkjmtviysba.supabase.co";
 
+const EMAILS_PAUSED = true; // Site en construction : mettre a false pour reactiver l'envoi des emails.
+
 async function sbFetch(path, options = {}) {
   const key = "sb_publishable_nX8bK2lPKzaRBWzuGut5JQ_yyiSgE-8";
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
@@ -16,6 +18,8 @@ async function sbFetch(path, options = {}) {
 }
 
 async function sendEmail(to, subject, html) {
+  if (EMAILS_PAUSED) { console.log("[EMAILS_PAUSED] Email non envoye (pause construction) a", to, "-", subject); return true; }
+  
   const BREVO_KEY = process.env.BREVO_API_KEY;
   const res = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
