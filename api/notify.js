@@ -1,9 +1,11 @@
-const EMAILS_PAUSED = true; // Site en construction : mettre a false pour reactiver l'envoi des emails.
+const EMAILS_PAUSED = true; // Notifications de match désactivées à la demande de Paul. Le code de vérification (send-code.js) reste actif.
 
 async function sendEmail(to, subject, html) {
-  if (EMAILS_PAUSED) { console.log("[EMAILS_PAUSED] Email non envoye (pause construction) a", to, "-", subject); return; }
-  
   if (to.includes("+seed")) return;
+  if (EMAILS_PAUSED) {
+    console.log("Email paused (notify.js), would have sent to:", to, "-", subject);
+    return;
+  }
   const BREVO_KEY = process.env.BREVO_API_KEY;
   await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
@@ -21,7 +23,6 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
   const { newStudent, matches } = req.body;
-  if (!process.env.BREVO_API_KEY) return res.status(500).json({ error: "Missing API key" });
 
   const dest = newStudent.destination.school;
   const city = newStudent.destination.city;
