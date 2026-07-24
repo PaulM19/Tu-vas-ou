@@ -1,4 +1,8 @@
+const EMAILS_PAUSED = true; // Site en construction : mettre a false pour reactiver l'envoi des emails.
+
 async function sendEmail(to, subject, html) {
+  if (EMAILS_PAUSED) { console.log("[EMAILS_PAUSED] Email non envoye (pause construction) a", to, "-", subject); return; }
+  
   if (to.includes("+seed")) return;
   const BREVO_KEY = process.env.BREVO_API_KEY;
   await fetch("https://api.brevo.com/v3/smtp/email", {
