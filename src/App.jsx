@@ -243,7 +243,7 @@ function ProgressBar({ step, total }) {
             {Array.from({ length: total }).map((_, i) => (
                     <div key={i} style={{ flex: 1, height: 3, borderRadius: 99, background: i < step ? T.accent : T.border, transition: "background 0.3s" }} />
                   ))}
-          </div>div>
+          </div>
         );
 }
 
@@ -266,9 +266,9 @@ function EmailInput({ value, onChange, onEnter }) {
                     <div onMouseDown={e => { e.preventDefault(); complete(); ref.current?.focus(); }}
                                 style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "#f0f0ed", color: T.muted, fontSize: 12, padding: "3px 8px", borderRadius: 6, cursor: "pointer", userSelect: "none", whiteSpace: "nowrap", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis" }}>
                       {value + DOMAIN}
-                    </div>div>
+                    </div>
                   )}
-          </div>div>
+          </div>
         );
 }
 
@@ -301,20 +301,20 @@ function DestSearch({ value, onChange, onSelect }) {
                       {results.map((d, i) => (
                                   <div key={i} onMouseDown={() => { onSelect(d); setOpen(false); }} onMouseEnter={() => setHi(i)}
                                                   style={{ padding: "11px 14px", background: i === hi ? T.bgHover : "transparent", cursor: "pointer", borderBottom: i < results.length - 1 ? `1px solid ${T.border}` : "none" }}>
-                                                  <span style={{ fontSize: 14, fontWeight: 500, color: T.text }}>{d.school}</span>span>
-                                                  <span style={{ fontSize: 12, color: T.muted, marginLeft: 8 }}>{d.city} · {d.country}</span>span>
-                                  </div>div>
+                                                  <span style={{ fontSize: 14, fontWeight: 500, color: T.text }}>{d.school}</span>
+                                                  <span style={{ fontSize: 12, color: T.muted, marginLeft: 8 }}>{d.city} · {d.country}</span>
+                                  </div>
                                 ))}
-                    </div>div>
+                    </div>
                   )}
-          </div>div>
+          </div>
         );
 }
 
 function SemBadge({ semester }) {
     const map = { fall: { bg: "#fef9ee", color: "#92400e" }, spring: { bg: T.greenBg, color: T.green }, double: { bg: "#f0f0fd", color: "#4338ca" } };
     const c = map[semester] || map.double;
-    return <span style={{ background: c.bg, color: c.color, fontSize: 11, padding: "2px 8px", borderRadius: 99, fontWeight: 500 }}>{SEMESTER_LABELS[semester] || semester}</span>span>;
+    return <span style={{ background: c.bg, color: c.color, fontSize: 11, padding: "2px 8px", borderRadius: 99, fontWeight: 500 }}>{SEMESTER_LABELS[semester] || semester}</span>;
 }
 
 function SemButton({ label, active, onClick }) {
@@ -324,7 +324,7 @@ function SemButton({ label, active, onClick }) {
           <button onClick={onClick} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
                   style={{ padding: "11px 6px", fontSize: 13, fontWeight: on ? 600 : 400, background: on ? T.accent : "transparent", color: on ? T.accentFg : T.muted, border: `1px solid ${on ? T.accent : T.border}`, borderRadius: T.radius, cursor: "pointer", transition: "all 0.12s" }}>
             {label}
-          </button>button>
+          </button>
         );
 }
 
@@ -335,29 +335,29 @@ function StudentCard({ student }) {
     return (
           <div style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, padding: "14px 16px", boxShadow: T.shadow }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: (student.whatsapp || student.lookingFor?.length > 0) ? 12 : 0 }}>
-                            <div style={{ width: 38, height: 38, borderRadius: "50%", background: T.bgHover, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 13, color: T.muted, flexShrink: 0 }}>{initials}</div>div>
+                            <div style={{ width: 38, height: 38, borderRadius: "50%", background: T.bgHover, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 13, color: T.muted, flexShrink: 0 }}>{initials}</div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                                                      <span style={{ fontWeight: 600, fontSize: 14, color: T.text }}>{student.firstName} {student.lastName}</span>span>
+                                                      <span style={{ fontWeight: 600, fontSize: 14, color: T.text }}>{student.firstName} {student.lastName}</span>
                                                       <SemBadge semester={student.semester} />
-                                        </div>div>
-                                        <p style={{ margin: "2px 0 0", fontSize: 12, color: T.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{student.destination.school} · {student.destination.city}</p>p>
-                            </div>div>
-                  </div>div>
+                                        </div>
+                                        <p style={{ margin: "2px 0 0", fontSize: 12, color: T.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{student.destination.school} · {student.destination.city}</p>
+                            </div>
+                  </div>
             {student.lookingFor?.length > 0 && (
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: student.whatsapp ? 10 : 0 }}>
                       {student.lookingFor.map(lf => (
-                                  <span key={lf} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: T.bgHover, color: T.muted, border: `1px solid ${T.border}` }}>{LOOKING_LABELS[lf] || lf}</span>span>
+                                  <span key={lf} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: T.bgHover, color: T.muted, border: `1px solid ${T.border}` }}>{LOOKING_LABELS[lf] || lf}</span>
                                 ))}
-                    </div>div>
+                    </div>
                   )}
             {student.whatsapp && (
                     <a href={`https://wa.me/${student.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
                                 style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", padding: "9px", background: "#25D366", color: "#fff", borderRadius: T.radius, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
                                 Contacter sur WhatsApp
-                    </a>a>
+                    </a>
                   )}
-          </div>div>
+          </div>
         );
 }
 
@@ -440,33 +440,33 @@ export default function App() {
                           <div style={{ marginBottom: 48 }}>
                                       <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: 99, padding: "4px 12px", marginBottom: 24, boxShadow: T.shadow }}>
                                                     <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", flexShrink: 0 }} />
-                                                    <span style={{ fontSize: 12, color: T.muted, fontWeight: 500 }}>emlyon GBBA · 2026–2027</span>span>
-                                      </div>div>
-                                      <h1 style={{ fontSize: 36, fontWeight: 700, color: T.text, margin: "0 0 12px", lineHeight: 1.15, letterSpacing: "-0.5px" }}>Tu pars où en échange ?</h1>h1>
-                                      <p style={{ fontSize: 16, color: T.muted, margin: 0, lineHeight: 1.6 }}>Découvre qui part à la même destination que toi. En 30 secondes.</p>p>
-                          </div>div>
+                                                    <span style={{ fontSize: 12, color: T.muted, fontWeight: 500 }}>emlyon GBBA · 2026–2027</span>
+                                      </div>
+                                      <h1 style={{ fontSize: 36, fontWeight: 700, color: T.text, margin: "0 0 12px", lineHeight: 1.15, letterSpacing: "-0.5px" }}>Tu pars où en échange ?</h1>
+                                      <p style={{ fontSize: 16, color: T.muted, margin: 0, lineHeight: 1.6 }}>Découvre qui part à la même destination que toi. En 30 secondes.</p>
+                          </div>
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 32 }}>
                             {[{ value: stats.total, label: "étudiants inscrits" }, { value: stats.countries, label: "pays représentés" }].map(({ value, label }) => (
                       <div key={label} style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, padding: "16px", textAlign: "center", boxShadow: T.shadow }}>
-                                      <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.5px" }}>{value}</p>p>
-                                      <p style={{ margin: "3px 0 0", fontSize: 12, color: T.muted }}>{label}</p>p>
-                      </div>div>
+                                      <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.5px" }}>{value}</p>
+                                      <p style={{ margin: "3px 0 0", fontSize: 12, color: T.muted }}>{label}</p>
+                      </div>
                     ))}
-                          </div>div>
+                          </div>
                           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                                       <button onClick={() => { setRegStep(1); setScreen("register"); }} style={{ padding: "14px", background: T.accent, color: T.accentFg, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: "pointer", width: "100%" }}>
                                                     Trouver mes matchs →
-                                      </button>button>
+                                      </button>
                                       <button onClick={() => setScreen("lookup")} style={{ padding: "13px", background: "transparent", color: T.text, border: `1px solid ${T.border}`, borderRadius: T.radius, fontSize: 14, cursor: "pointer", width: "100%" }}>
                                                     J'ai déjà un compte
-                                      </button>button>
-                          </div>div>
+                                      </button>
+                          </div>
                           <p style={{ marginTop: 24, fontSize: 12, color: T.faint, textAlign: "center" }}>
                                       140 universités partenaires dans {stats.countries} pays ·{" "}
-                                      <span onClick={() => setScreen("privacy")} style={{ textDecoration: "underline", cursor: "pointer" }}>Confidentialité</span>span>
-                          </p>p>
-                </div>div>
-        </div>div>
+                                      <span onClick={() => setScreen("privacy")} style={{ textDecoration: "underline", cursor: "pointer" }}>Confidentialité</span>
+                          </p>
+                </div>
+        </div>
       );
 
   // ── REGISTER ──
@@ -475,14 +475,14 @@ export default function App() {
                 <div style={{ width: "100%", maxWidth: 420 }}>
                           <button onClick={() => { if (regStep === 1) setScreen("home"); else setRegStep(s => s - 1); setError(""); setVerifError(""); }} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 13, padding: "0 0 24px", display: "flex", alignItems: "center", gap: 4 }}>
                                       ← {regStep === 1 ? "Retour" : "Étape précédente"}
-                          </button>button>
+                          </button>
                           <ProgressBar step={regStep} total={4} />
 
                   {regStep === 1 && (
                     <div>
-                                <p style={{ fontSize: 12, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" }}>Étape 1 sur 4</p>p>
-                                <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}>C'est qui toi ?</h2>h2>
-                                <p style={{ fontSize: 14, color: T.muted, margin: "0 0 28px" }}>Utilise ton adresse email emlyon.</p>p>
+                                <p style={{ fontSize: 12, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" }}>Étape 1 sur 4</p>
+                                <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}>C'est qui toi ?</h2>
+                                <p style={{ fontSize: 14, color: T.muted, margin: "0 0 28px" }}>Utilise ton adresse email emlyon.</p>
                                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                                               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                                                               <input placeholder="Prénom" value={form.firstName} autoFocus
@@ -491,110 +491,110 @@ export default function App() {
                                                               <input placeholder="Nom" value={form.lastName}
                                                                                   onChange={e => { const lastName = e.target.value; const email = form.firstName && lastName ? `${norm(form.firstName)}.${norm(lastName)}${DOMAIN}` : form.email; setForm(f => ({ ...f, lastName, email })); }}
                                                                                   style={inputStyle} />
-                                              </div>div>
+                                              </div>
                                               <div>
                                                               <EmailInput value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} onEnter={() => step1Valid() && sendVerifCode()} />
-                                                              <p style={{ margin: "6px 0 0", fontSize: 12, color: T.faint }}>{form.firstName && form.lastName ? "Généré automatiquement — modifie si besoin" : "Remplis prénom et nom pour générer ton email"}</p>p>
-                                              </div>div>
-                                  {error && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{error}</p>p>}
+                                                              <p style={{ margin: "6px 0 0", fontSize: 12, color: T.faint }}>{form.firstName && form.lastName ? "Généré automatiquement — modifie si besoin" : "Remplis prénom et nom pour générer ton email"}</p>
+                                              </div>
+                                  {error && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{error}</p>}
                                               <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", padding: "12px 14px", background: T.bgHover, borderRadius: T.radius, border: `1px solid ${T.border}` }}>
                                                               <input type="checkbox" checked={form.consent} onChange={e => setForm(f => ({ ...f, consent: e.target.checked }))} style={{ marginTop: 2, width: 16, height: 16, flexShrink: 0, cursor: "pointer" }} />
                                                               <span style={{ fontSize: 13, color: T.muted, lineHeight: 1.5 }}>
                                                                                 J'accepte que mes données (nom, email, destination, WhatsApp) soient partagées uniquement avec les étudiants emlyon partant à la même destination.{" "}
-                                                                                <span onClick={e => { e.preventDefault(); setScreen("privacy"); }} style={{ color: T.text, textDecoration: "underline", cursor: "pointer" }}>Politique de confidentialité</span>span>
-                                                              </span>span>
-                                              </label>label>
+                                                                                <span onClick={e => { e.preventDefault(); setScreen("privacy"); }} style={{ color: T.text, textDecoration: "underline", cursor: "pointer" }}>Politique de confidentialité</span>
+                                                              </span>
+                                              </label>
                                               <button onClick={(e) => { e.preventDefault(); setError(""); if (!form.firstName.trim() || !form.lastName.trim()) { setError("Entre ton prénom et ton nom."); return; } if (!form.email.endsWith(DOMAIN)) { setError("Utilise ton adresse @edu.em-lyon.com"); return; } if (!form.consent) { setError("Tu dois accepter les conditions pour continuer."); return; } setError(""); sendVerifCode(); }}
                                                                 disabled={!step1Valid() || loading}
                                                                 style={{ padding: "13px", background: step1Valid() ? T.accent : T.border, color: step1Valid() ? T.accentFg : T.faint, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: step1Valid() ? "pointer" : "not-allowed", width: "100%", opacity: loading ? 0.7 : 1 }}>
                                                 {loading ? "Envoi du code…" : "Vérifier mon email →"}
-                                              </button>button>
-                                </div>div>
-                    </div>div>
+                                              </button>
+                                </div>
+                    </div>
                         )}
                 
                   {regStep === 2 && (
                     <div>
-                                <p style={{ fontSize: 12, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" }}>Étape 2 sur 4</p>p>
-                                <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}>Vérifie ton email</h2>h2>
-                                <p style={{ fontSize: 14, color: T.muted, margin: "0 0 6px" }}>On a envoyé un code à 4 chiffres à</p>p>
-                                <p style={{ fontSize: 14, fontWeight: 600, color: T.text, margin: "0 0 28px" }}>{form.email}</p>p>
+                                <p style={{ fontSize: 12, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" }}>Étape 2 sur 4</p>
+                                <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}>Vérifie ton email</h2>
+                                <p style={{ fontSize: 14, color: T.muted, margin: "0 0 6px" }}>On a envoyé un code à 4 chiffres à</p>
+                                <p style={{ fontSize: 14, fontWeight: 600, color: T.text, margin: "0 0 28px" }}>{form.email}</p>
                                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                                               <input type="text" inputMode="numeric" maxLength={4} placeholder="_ _ _ _" value={verifCode}
                                                                 onChange={e => setVerifCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
                                                                 onKeyDown={e => e.key === "Enter" && verifCode.length === 4 && verifyCode()}
                                                                 autoFocus style={{ ...inputStyle, fontSize: 28, fontWeight: 700, letterSpacing: 16, textAlign: "center" }} />
-                                  {verifError && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{verifError}</p>p>}
+                                  {verifError && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{verifError}</p>}
                                               <button onClick={verifyCode} disabled={loading || verifCode.length !== 4}
                                                                 style={{ padding: "13px", background: verifCode.length === 4 ? T.accent : T.border, color: verifCode.length === 4 ? T.accentFg : T.faint, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: verifCode.length === 4 ? "pointer" : "not-allowed", width: "100%", opacity: loading ? 0.7 : 1 }}>
                                                 {loading ? "Vérification…" : "Confirmer →"}
-                                              </button>button>
+                                              </button>
                                               <button onClick={() => { setVerifCode(""); sendVerifCode(); }} disabled={loading}
                                                                 style={{ padding: "10px", background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: T.radius, fontSize: 13, cursor: "pointer", width: "100%" }}>
                                                               Renvoyer le code
-                                              </button>button>
-                                </div>div>
-                    </div>div>
+                                              </button>
+                                </div>
+                    </div>
                         )}
                 
                   {regStep === 3 && (
                     <div>
-                                <p style={{ fontSize: 12, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" }}>Étape 3 sur 4</p>p>
-                                <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}>Tu pars où ?</h2>h2>
-                                <p style={{ fontSize: 14, color: T.muted, margin: "0 0 28px" }}>Tape le pays, la ville ou le nom de l'école.</p>p>
+                                <p style={{ fontSize: 12, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" }}>Étape 3 sur 4</p>
+                                <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}>Tu pars où ?</h2>
+                                <p style={{ fontSize: 14, color: T.muted, margin: "0 0 28px" }}>Tape le pays, la ville ou le nom de l'école.</p>
                                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                                               <DestSearch value={form.destQuery} onChange={v => setForm(f => ({ ...f, destQuery: v, destination: null }))} onSelect={d => { setForm(f => ({ ...f, destQuery: `${d.school} – ${d.city}`, destination: d })); getDestinationPreview(d.school).then(setDestPreview).catch(() => setDestPreview({ count: 0, initials: [] })); }} />
                                   {form.destination && (() => { const count = destPreview.count; return (
                                       <div style={{ padding: "12px 14px", background: count > 0 ? T.greenBg : T.bgHover, borderRadius: T.radius, border: `1px solid ${count > 0 ? "#bbf7d0" : T.border}` }}>
                                         {count > 0 ? (
                                                             <div>
-                                                                                  <p style={{ margin: "0 0 10px", fontSize: 13, color: T.green, fontWeight: 600 }}>{count} étudiant{count > 1 ? "s" : ""} déjà inscrit{count > 1 ? "s" : ""}</p>p>
+                                                                                  <p style={{ margin: "0 0 10px", fontSize: 13, color: T.green, fontWeight: 600 }}>{count} étudiant{count > 1 ? "s" : ""} déjà inscrit{count > 1 ? "s" : ""}</p>
                                                                                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                                                                                     {destPreview.initials.slice(0, 5).map((initials, i) => (
                                                                                         <div key={i} style={{ width: 34, height: 34, borderRadius: "50%", background: T.bgHover, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600, color: T.muted, filter: "blur(4px)", border: `2px solid ${T.bgCard}` }}>
                                                                                           {initials}
-                                                                                          </div>div>
+                                                                                          </div>
                                                                                       ))}
-                                                                                    {count > 5 && <div style={{ width: 34, height: 34, borderRadius: "50%", background: T.border, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, color: T.muted }}>+{count - 5}</div>div>}
-                                                                                    </div>div>
-                                                                                  <p style={{ margin: "8px 0 0", fontSize: 12, color: T.green }}>Inscris-toi pour voir leurs profils →</p>p>
-                                                            </div>div>
-                                                          ) : <p style={{ margin: 0, fontSize: 13, color: T.muted, fontWeight: 500 }}>Tu seras le premier pour cette destination !</p>p>}
-                                      </div>div>
+                                                                                    {count > 5 && <div style={{ width: 34, height: 34, borderRadius: "50%", background: T.border, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, color: T.muted }}>+{count - 5}</div>}
+                                                                                    </div>
+                                                                                  <p style={{ margin: "8px 0 0", fontSize: 12, color: T.green }}>Inscris-toi pour voir leurs profils →</p>
+                                                            </div>
+                                                          ) : <p style={{ margin: 0, fontSize: 13, color: T.muted, fontWeight: 500 }}>Tu seras le premier pour cette destination !</p>}
+                                      </div>
                                     ); })()}
                                               <div>
-                                                              <p style={{ fontSize: 13, color: T.muted, margin: "0 0 10px" }}>Je cherche (optionnel)</p>p>
+                                                              <p style={{ fontSize: 13, color: T.muted, margin: "0 0 10px" }}>Je cherche (optionnel)</p>
                                                               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                                                                 {[["coloc", "Une coloc"], ["amis", "Des amis"], ["conseils", "Des conseils"], ["activites", "Des activités"]].map(([val, label]) => {
                                           const active = form.lookingFor.includes(val);
-                                          return <button key={val} onClick={() => setForm(f => ({ ...f, lookingFor: active ? f.lookingFor.filter(x => x !== val) : [...f.lookingFor, val] }))} style={{ padding: "8px 14px", fontSize: 13, borderRadius: 99, background: active ? T.accent : "transparent", color: active ? T.accentFg : T.muted, border: `1px solid ${active ? T.accent : T.border}`, cursor: "pointer", transition: "all 0.12s" }}>{label}</button>button>;
+                                          return <button key={val} onClick={() => setForm(f => ({ ...f, lookingFor: active ? f.lookingFor.filter(x => x !== val) : [...f.lookingFor, val] }))} style={{ padding: "8px 14px", fontSize: 13, borderRadius: 99, background: active ? T.accent : "transparent", color: active ? T.accentFg : T.muted, border: `1px solid ${active ? T.accent : T.border}`, cursor: "pointer", transition: "all 0.12s" }}>{label}</button>;
                     })}
-                                                              </div>div>
-                                              </div>div>
+                                                              </div>
+                                              </div>
                                               <div>
-                                                              <p style={{ fontSize: 13, color: T.muted, margin: "0 0 10px" }}>Semestre</p>p>
+                                                              <p style={{ fontSize: 13, color: T.muted, margin: "0 0 10px" }}>Semestre</p>
                                                               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                                                                 {[["fall", "Fall"], ["spring", "Spring"], ["double", "Double diplôme"]].map(([val, label]) => (
                                           <SemButton key={val} label={label} active={form.semester === val} onClick={() => setForm(f => ({ ...f, semester: val }))} />
                                         ))}
-                                                              </div>div>
-                                              </div>div>
+                                                              </div>
+                                              </div>
                                               <button onClick={() => step2Valid() && setRegStep(4)} disabled={!step2Valid()}
                                                                 style={{ padding: "13px", background: step2Valid() ? T.accent : T.border, color: step2Valid() ? T.accentFg : T.faint, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: step2Valid() ? "pointer" : "not-allowed", width: "100%" }}>
                                                               Continuer →
-                                              </button>button>
-                                </div>div>
-                    </div>div>
+                                              </button>
+                                </div>
+                    </div>
                         )}
                 
                   {regStep === 4 && (
                     <div>
-                                <p style={{ fontSize: 12, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" }}>Étape 4 sur 4</p>p>
-                                <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}>Ton WhatsApp</h2>h2>
-                                <p style={{ fontSize: 14, color: T.muted, margin: "0 0 28px" }}>Obligatoire — tes matchs pourront te contacter directement.</p>p>
+                                <p style={{ fontSize: 12, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" }}>Étape 4 sur 4</p>
+                                <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}>Ton WhatsApp</h2>
+                                <p style={{ fontSize: 14, color: T.muted, margin: "0 0 28px" }}>Obligatoire — tes matchs pourront te contacter directement.</p>
                                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                                               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                                              <p style={{ margin: 0, fontSize: 13, color: T.muted }}>Inclus l'indicatif si tu n'es pas en France (ex: +34 6 12 34 56 78)</p>p>
+                                                              <p style={{ margin: 0, fontSize: 13, color: T.muted }}>Inclus l'indicatif si tu n'es pas en France (ex: +34 6 12 34 56 78)</p>
                                                               <input
                                                                                   type="text"
                                                                                   placeholder="+33 6 12 34 56 78"
@@ -604,80 +604,80 @@ export default function App() {
                                                                                   onChange={e => setForm(f => ({ ...f, whatsappNumber: e.target.value }))}
                                                                                   style={inputStyle}
                                                                                 />
-                                              </div>div>
-                                  {error && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{error}</p>p>}
+                                              </div>
+                                  {error && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{error}</p>}
                                               <button onClick={() => { if (!form.whatsappNumber.trim()) { setError("Entre ton numéro WhatsApp pour continuer."); return; } handleSubmit(); }} disabled={loading}
                                                                 style={{ padding: "13px", background: form.whatsappNumber.trim() ? T.accent : T.border, color: form.whatsappNumber.trim() ? T.accentFg : T.faint, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: "pointer", width: "100%", opacity: loading ? 0.7 : 1, transition: "all 0.15s" }}>
                                                 {loading ? "Inscription en cours…" : "Voir mes matchs →"}
-                                              </button>button>
-                                </div>div>
-                    </div>div>
+                                              </button>
+                                </div>
+                    </div>
                         )}
-                </div>div>
-        </div>div>
+                </div>
+        </div>
       );
   
     // ── LOOKUP ──
     if (screen === "lookup") return (
           <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem 1rem" }}>
                 <div style={{ width: "100%", maxWidth: 420 }}>
-                        <button onClick={() => { setScreen("home"); setError(""); }} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 13, padding: "0 0 32px", display: "flex", alignItems: "center", gap: 4 }}>← Retour</button>button>
-                        <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}>Retrouver mes matchs</h2>h2>
-                        <p style={{ fontSize: 14, color: T.muted, margin: "0 0 28px" }}>Entre l'adresse avec laquelle tu t'es inscrit.</p>p>
+                        <button onClick={() => { setScreen("home"); setError(""); }} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 13, padding: "0 0 32px", display: "flex", alignItems: "center", gap: 4 }}>← Retour</button>
+                        <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}>Retrouver mes matchs</h2>
+                        <p style={{ fontSize: 14, color: T.muted, margin: "0 0 28px" }}>Entre l'adresse avec laquelle tu t'es inscrit.</p>
                         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                                   <EmailInput value={lookupEmail} onChange={setLookupEmail} onEnter={handleLookup} />
-                          {error && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{error}</p>p>}
+                          {error && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{error}</p>}
                                   <button onClick={handleLookup} disabled={loading || !lookupEmail.includes("@")}
                                                 style={{ padding: "13px", background: T.accent, color: T.accentFg, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: "pointer", width: "100%", opacity: (loading || !lookupEmail.includes("@")) ? 0.5 : 1 }}>
                                     {loading ? "Recherche…" : "Voir mes matchs →"}
-                                  </button>button>
+                                  </button>
                                   <button onClick={() => { setRegStep(1); setScreen("register"); }} style={{ padding: "12px", background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: T.radius, fontSize: 13, cursor: "pointer", width: "100%" }}>
                                               Pas encore inscrit ? S'inscrire
-                                  </button>button>
-                        </div>div>
-                </div>div>
-          </div>div>
+                                  </button>
+                        </div>
+                </div>
+          </div>
         );
   
     // ── MATCHES ──
     if (screen === "matches" && registered) return (
           <div style={{ minHeight: "100vh", background: T.bg, padding: "2rem 1rem" }}>
                 <div style={{ maxWidth: 520, margin: "0 auto" }}>
-                        <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 13, padding: "0 0 24px", display: "flex", alignItems: "center", gap: 4 }}>← Accueil</button>button>
+                        <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 13, padding: "0 0 24px", display: "flex", alignItems: "center", gap: 4 }}>← Accueil</button>
                         <div style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, padding: "16px 18px", marginBottom: 24, boxShadow: T.shadow }}>
-                                  <p style={{ margin: "0 0 2px", fontSize: 11, fontWeight: 600, color: T.faint, textTransform: "uppercase", letterSpacing: "0.08em" }}>Ta destination</p>p>
-                                  <p style={{ margin: "0 0 4px", fontWeight: 700, fontSize: 16, color: T.text }}>{registered.destination.school}</p>p>
+                                  <p style={{ margin: "0 0 2px", fontSize: 11, fontWeight: 600, color: T.faint, textTransform: "uppercase", letterSpacing: "0.08em" }}>Ta destination</p>
+                                  <p style={{ margin: "0 0 4px", fontWeight: 700, fontSize: 16, color: T.text }}>{registered.destination.school}</p>
                                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                              <span style={{ fontSize: 13, color: T.muted }}>{registered.destination.city} · {registered.destination.country}</span>span>
+                                              <span style={{ fontSize: 13, color: T.muted }}>{registered.destination.city} · {registered.destination.country}</span>
                                               <SemBadge semester={registered.semester} />
-                                  </div>div>
-                        </div>div>
+                                  </div>
+                        </div>
                         <div style={{ marginBottom: 20 }}>
                                   <h2 style={{ fontSize: 20, fontWeight: 700, color: T.text, margin: "0 0 4px", letterSpacing: "-0.2px" }}>
                                     {matches.length === 0 ? "Aucun match pour l'instant" : `${matches.length} match${matches.length > 1 ? "s" : ""} trouvé${matches.length > 1 ? "s" : ""}`}
-                                  </h2>h2>
+                                  </h2>
                                   <p style={{ margin: 0, fontSize: 14, color: T.muted }}>
                                     {matches.length === 0 ? "Partage l'app à tes amis pour trouver des camarades." : "Des étudiants qui partent au même endroit que toi."}
-                                  </p>p>
-                        </div>div>
+                                  </p>
+                        </div>
                   {matches.length === 0 ? (
                       <div style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, padding: "32px 20px", textAlign: "center", boxShadow: T.shadow }}>
-                                  <p style={{ margin: 0, fontSize: 14, color: T.muted, lineHeight: 1.6 }}>Tu seras le premier à cette destination.<br />Reviens bientôt !</p>p>
+                                  <p style={{ margin: 0, fontSize: 14, color: T.muted, lineHeight: 1.6 }}>Tu seras le premier à cette destination.<br />Reviens bientôt !</p>
                                   <button onClick={() => { if (navigator.share) navigator.share({ title: "Tu pars où en échange ?", text: "Trouve qui part en échange avec toi !", url: "https://tu-pars-ou.vercel.app" }); }}
                                                   style={{ marginTop: 16, padding: "10px 20px", background: T.accent, color: T.accentFg, border: "none", borderRadius: T.radius, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
                                                 Partager l'app
-                                  </button>button>
-                      </div>div>
+                                  </button>
+                      </div>
                     ) : (
                       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                         {matches.map(s => <StudentCard key={s.id} student={s} />)}
-                      </div>div>
+                      </div>
                         )}
                         <div style={{ marginTop: 40, paddingTop: 24, borderTop: `1px solid ${T.border}` }}>
                                   <p style={{ fontSize: 12, color: T.faint, marginBottom: 12, textAlign: "center" }}>
                                               Tes données sont partagées uniquement avec tes matchs.{" "}
-                                              <span onClick={() => setScreen("privacy")} style={{ textDecoration: "underline", cursor: "pointer" }}>Politique de confidentialité</span>span>
-                                  </p>p>
+                                              <span onClick={() => setScreen("privacy")} style={{ textDecoration: "underline", cursor: "pointer" }}>Politique de confidentialité</span>
+                                  </p>
                                   <button onClick={async () => {
                         if (!window.confirm("Supprimer ton inscription ? Cette action est irréversible.")) return;
                         try {
@@ -687,19 +687,19 @@ export default function App() {
                         } catch { alert("Erreur lors de la suppression. Contacte monzatpaul@gmail.com"); }
           }} style={{ width: "100%", padding: "10px", background: "transparent", color: T.red, border: `1px solid ${T.red}20`, borderRadius: T.radius, fontSize: 13, cursor: "pointer" }}>
                                               Supprimer mon inscription
-                                  </button>button>
-                        </div>div>
-                </div>div>
-          </div>div>
+                                  </button>
+                        </div>
+                </div>
+          </div>
         );
   
     // ── PRIVACY ──
     if (screen === "privacy") return (
           <div style={{ minHeight: "100vh", background: T.bg, padding: "2rem 1rem" }}>
                 <div style={{ maxWidth: 520, margin: "0 auto" }}>
-                        <button onClick={() => setScreen(registered ? "matches" : "home")} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 13, padding: "0 0 32px", display: "flex", alignItems: "center", gap: 4 }}>← Retour</button>button>
-                        <h1 style={{ fontSize: 24, fontWeight: 700, color: T.text, margin: "0 0 6px" }}>Politique de confidentialité</h1>h1>
-                        <p style={{ fontSize: 13, color: T.faint, margin: "0 0 32px" }}>Dernière mise à jour : juillet 2026</p>p>
+                        <button onClick={() => setScreen(registered ? "matches" : "home")} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 13, padding: "0 0 32px", display: "flex", alignItems: "center", gap: 4 }}>← Retour</button>
+                        <h1 style={{ fontSize: 24, fontWeight: 700, color: T.text, margin: "0 0 6px" }}>Politique de confidentialité</h1>
+                        <p style={{ fontSize: 13, color: T.faint, margin: "0 0 32px" }}>Dernière mise à jour : juillet 2026</p>
                   {[
             { title: "Qui sommes-nous ?", content: "Tu pars où en échange ? est une application étudiante créée par des étudiants emlyon pour les étudiants emlyon partant en échange académique. Ce projet n'est pas affilié officiellement à emlyon business school." },
             { title: "Quelles données collectons-nous ?", content: "Lors de ton inscription, nous collectons : ton prénom et nom, ton adresse email @edu.em-lyon.com, ta destination d'échange (école, ville, pays), ton semestre, et ton numéro WhatsApp." },
@@ -710,15 +710,15 @@ export default function App() {
             { title: "Sécurité", content: "Les données sont stockées sur Supabase (infrastructure sécurisée basée en Europe). Ton numéro WhatsApp n'est visible que par les étudiants qui partagent ta destination." },
                     ].map(({ title, content }) => (
                                 <div key={title} style={{ marginBottom: 24 }}>
-                                            <h2 style={{ fontSize: 15, fontWeight: 600, color: T.text, margin: "0 0 6px" }}>{title}</h2>h2>
-                                            <p style={{ fontSize: 14, color: T.muted, lineHeight: 1.7, margin: 0 }}>{content}</p>p>
-                                </div>div>
+                                            <h2 style={{ fontSize: 15, fontWeight: 600, color: T.text, margin: "0 0 6px" }}>{title}</h2>
+                                            <p style={{ fontSize: 14, color: T.muted, lineHeight: 1.7, margin: 0 }}>{content}</p>
+                                </div>
                               ))}
                         <div style={{ padding: "14px 16px", background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radius, marginTop: 12 }}>
-                                  <p style={{ margin: 0, fontSize: 13, color: T.muted }}>Contact RGPD : <strong>monzatpaul@gmail.com</strong>strong></p>p>
-                        </div>div>
-                </div>div>
-          </div>div>
+                                  <p style={{ margin: 0, fontSize: 13, color: T.muted }}>Contact RGPD : <strong>monzatpaul@gmail.com</strong></p>
+                        </div>
+                </div>
+          </div>
         );
   
     return null;
