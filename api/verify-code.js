@@ -57,5 +57,11 @@ export default async function handler(req, res) {
 
   // Code valide — supprimer
   await sbFetch(`verification_codes?email=eq.${encodeURIComponent(cleanEmail)}`, { method: "DELETE" });
+    await sbFetch(`verified_emails?email=eq.${encodeURIComponent(cleanEmail)}`, { method: "DELETE" });
+    await sbFetch("verified_emails", {
+          method: "POST",
+          prefer: "return=minimal",
+          body: JSON.stringify({ email: cleanEmail, verified_at: new Date().toISOString() }),
+    });
   return res.status(200).json({ ok: true, verified: true });
 }
