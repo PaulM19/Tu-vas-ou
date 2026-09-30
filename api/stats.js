@@ -1,7 +1,7 @@
 const SUPABASE_URL = "https://fckolgfthpkjmtviysba.supabase.co";
 
 async function sbFetch(path, options = {}) {
-  const key = process.env.SUPABASE_SERVICE_KEY || "sb_publishable_nX8bK2lPKzaRBWzuGut5JQ_yyiSgE-8";
+  const key = process.env.SUPABASE_SERVICE_KEY;
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...options,
     headers: {
