@@ -1,6 +1,6 @@
 const SUPABASE_URL = "https://fckolgfthpkjmtviysba.supabase.co";
 
-const EMAILS_PAUSED = true; // Site en construction : mettre a false pour reactiver l'envoi des emails.
+const EMAILS_PAUSED = false; // Site en construction : mettre a false pour reactiver l'envoi des emails.
 
 async function sbFetch(path, options = {}) {
   const key = process.env.SUPABASE_SERVICE_KEY;
