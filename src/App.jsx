@@ -501,7 +501,7 @@ export default function App() {
                                                               <EmailInput value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} onEnter={() => step1Valid() && sendVerifCode()} />
                                                               <p style={{ margin: "6px 0 0", fontSize: 12, color: T.faint }}>{form.firstName && form.lastName ? "Généré automatiquement — modifie si besoin" : "Remplis prénom et nom pour générer ton email"}</p>
                                               </div>
-                                  {error && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{error}</p>}
+                                  {verifError && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{verifError}</p>}
                                               <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", padding: "12px 14px", background: T.bgHover, borderRadius: T.radius, border: `1px solid ${T.border}` }}>
                                                               <input type="checkbox" checked={form.consent} onChange={e => setForm(f => ({ ...f, consent: e.target.checked }))} style={{ marginTop: 2, width: 16, height: 16, flexShrink: 0, cursor: "pointer" }} />
                                                               <span style={{ fontSize: 13, color: T.muted, lineHeight: 1.5 }}>
