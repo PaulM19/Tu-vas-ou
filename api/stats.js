@@ -29,7 +29,7 @@ if (school) {
   return res.status(200).json({ count: rows.length, initials });
 }
 
-const { data } = await sbFetch(`students?select=country&is_seeded=eq.false`);
+const { data } = await sbFetch(`students?select=country`);
   const rows = data || [];
   const total = rows.length;
   const countries = new Set(rows.map(r => r.country)).size;
