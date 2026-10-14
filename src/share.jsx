@@ -9,12 +9,12 @@ const SEM_LABEL = { fall: "au Fall", spring: "au Spring", double: "en double dip
 // Message partagé par un étudiant inscrit
 export function destinationMessage(dest, semester) {
   const when = SEM_LABEL[semester] ? ` ${SEM_LABEL[semester]}` : "";
-  return `Je pars à ${dest.city}${when} 🌍 Et toi, tu pars où en échange ?\n` +
+  return `Je pars à ${dest.city}${when}. Et toi, tu pars où en échange ?\n` +
          `Trouve les étudiants emlyon qui partent au même endroit que toi : ${SITE_URL}`;
 }
 
 // Message partagé depuis la carte
-export const MAP_MESSAGE = `Regarde où part la promo emlyon en échange 🌍\n${MAP_URL}`;
+export const MAP_MESSAGE = `Regarde où part la promo emlyon en échange :\n${MAP_URL}`;
 
 const WA_GREEN = "#25D366";
 
