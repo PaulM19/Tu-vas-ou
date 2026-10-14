@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import WorldMap from "./WorldMap";
+import WorldMap, { MapPreview } from "./WorldMap";
 import { ShareBar, SITE_URL, destinationMessage } from "./share";
 const DOMAIN = "@edu.em-lyon.com";
 
@@ -189,6 +189,8 @@ const DESTINATIONS = [
   {country:"Vietnam",city:"Hô Chi Minh-Ville",school:"Ton Duc Thang University"},
   {country:"Vietnam",city:"Hanoï",school:"VinUniversity"},
   ];
+const PARTNER_SCHOOLS = new Set(DESTINATIONS.map(d => d.school)).size;
+const PARTNER_COUNTRIES = new Set(DESTINATIONS.map(d => d.country)).size;
 
 
 const COUNTRY_CODES = [
@@ -376,13 +378,13 @@ export default function App() {
     const [lookupEmail, setLookupEmail] = useState("");
     const [registered, setRegistered] = useState(null);
     const [matches, setMatches] = useState([]);
-    const [stats, setStats] = useState({ total: 0, countries: 0 });
+    const [stats, setStats] = useState(null); // null tant que les chiffres chargent
     const [destPreview, setDestPreview] = useState({ count: 0, initials: [] });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
   useEffect(() => {
-        getStats().then(setStats).catch(() => {});
+        getStats().then(setStats).catch(() => setStats({ total: "—", countries: "—" }));
   }, []);
 
   function step1Valid() { return form.firstName.trim() && form.lastName.trim() && form.email.endsWith(DOMAIN) && form.consent; }
@@ -452,9 +454,11 @@ export default function App() {
                                       <p style={{ fontSize: 16, color: T.muted, margin: 0, lineHeight: 1.6 }}>Découvre qui part à la même destination que toi. En 30 secondes.</p>
                           </div>
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 32 }}>
-                            {[{ value: stats.total, label: "étudiants inscrits" }, { value: stats.countries, label: "pays représentés" }].map(({ value, label }) => (
+                            {[{ value: stats?.total, label: "étudiants inscrits" }, { value: stats?.countries, label: "pays représentés" }].map(({ value, label }) => (
                       <div key={label} style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, padding: "16px", textAlign: "center", boxShadow: T.shadow }}>
-                                      <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.5px" }}>{value}</p>
+                                      {value == null
+                                        ? <span style={{ display: "block", width: 44, height: 28, margin: "2px auto 0", borderRadius: 6, background: T.bgHover }} />
+                                        : <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: T.text, letterSpacing: "-0.5px" }}>{value}</p>}
                                       <p style={{ margin: "3px 0 0", fontSize: 12, color: T.muted }}>{label}</p>
                       </div>
                     ))}
@@ -466,12 +470,12 @@ export default function App() {
                                       <button onClick={() => setScreen("lookup")} style={{ padding: "13px", background: "transparent", color: T.text, border: `1px solid ${T.border}`, borderRadius: T.radius, fontSize: 14, cursor: "pointer", width: "100%" }}>
                                                     J'ai déjà un compte
                                       </button>
-                              <button onClick={() => setScreen("map")} style={{ padding: "13px", background: "transparent", color: T.text, border: `1px solid ${T.border}`, borderRadius: T.radius, fontSize: 14, cursor: "pointer", width: "100%" }}>
-  🌍 Voir la carte des départs
-</button>
+                              <div style={{ marginTop: 14 }}>
+                                <MapPreview T={T} onOpen={() => setScreen("map")} />
+                              </div>
                           </div>
                           <p style={{ marginTop: 24, fontSize: 12, color: T.faint, textAlign: "center" }}>
-                                      140 universités partenaires dans {stats.countries} pays ·{" "}
+                                      {PARTNER_SCHOOLS} universités partenaires dans {PARTNER_COUNTRIES} pays ·{" "}
                                       <span onClick={() => setScreen("privacy")} style={{ textDecoration: "underline", cursor: "pointer" }}>Confidentialité</span>
                           </p>
                 </div>

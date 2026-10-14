@@ -319,3 +319,36 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
     </div>
   );
 }
+
+// Aperçu cliquable de la carte, pour la page d'accueil
+export function MapPreview({ T, onOpen }) {
+  const [cities, setCities] = useState(null);
+  useEffect(() => {
+    fetch("/api/map")
+      .then(r => (r.ok ? r.json() : Promise.reject()))
+      .then(d => setCities((d.cities || []).filter(c => c.count >= MIN_SHOW && CITY_POS[c.city])))
+      .catch(() => setCities([]));
+  }, []);
+  const max = Math.max(1, ...(cities || []).map(c => c.count));
+  return (
+    <button onClick={onOpen} aria-label="Voir la carte des départs"
+            style={{ width: "100%", padding: 0, textAlign: "left", cursor: "pointer", background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, boxShadow: T.shadow, overflow: "hidden", display: "block" }}>
+      <svg viewBox={`0 20 ${MAP_W} ${MAP_H - 60}`} style={{ width: "100%", height: "auto", display: "block", background: "#fbfaf8" }} aria-hidden="true">
+        <path d={LAND_PATH} fill="#e7e5e0" stroke="#ffffff" strokeWidth={0.6} />
+        {(cities || []).map(c => {
+          const [x, y] = CITY_POS[c.city];
+          return <circle key={c.country + c.city} cx={x} cy={y} r={4 + 9 * Math.sqrt(c.count / max)} fill={RED} fillOpacity={0.7} stroke="#fff" strokeWidth={1} />;
+        })}
+      </svg>
+      <span style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", borderTop: `1px solid ${T.border}` }}>
+        <span>
+          <span style={{ display: "block", fontSize: 14, fontWeight: 600, color: T.text }}>Où part la promo ?</span>
+          <span style={{ display: "block", fontSize: 12, color: T.muted, marginTop: 2 }}>
+            {cities ? `${cities.length} villes sur la carte` : "Chargement…"}
+          </span>
+        </span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>Voir la carte →</span>
+      </span>
+    </button>
+  );
+}
