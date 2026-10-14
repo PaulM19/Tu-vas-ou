@@ -6,11 +6,28 @@ import { MAP_W, MAP_H, LAND_PATH, CITY_POS } from "./mapData";
 const MIN_SHOW = 1;
 
 const RED = "#dc2626";
+const MINE = "#2563eb"; // couleur de "ta destination"
 
-export default function WorldMap({ T, onBack }) {
+// Cadrages de la carte : x, y, largeur, hauteur (dans le repère de mapData)
+const VIEWS = {
+  monde: { label: "Monde", box: [0, 0, MAP_W, MAP_H] },
+  europe: { label: "Europe", box: [398, 38, 256, 112] },
+};
+
+const SEMESTERS = [
+  ["all", "Tous"],
+  ["fall", "Fall"],
+  ["spring", "Spring"],
+  ["double", "Double diplôme"],
+];
+
+// myDest : { city, country } de l'étudiant connecté (ou null)
+export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Retour" }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState(null);
+  const [view, setView] = useState("monde");
+  const [sem, setSem] = useState("all");
 
   useEffect(() => {
     fetch("/api/map")
@@ -19,32 +36,50 @@ export default function WorldMap({ T, onBack }) {
       .catch(() => setError("Impossible de charger la carte. Réessaie plus tard."));
   }, []);
 
+  const isMine = c => !!myDest && c.city === myDest.city && c.country === myDest.country;
+
   const cities = useMemo(
-    () => (data?.cities || []).filter(c => c.count >= MIN_SHOW && CITY_POS[c.city]),
-    [data]
+    () =>
+      (data?.cities || [])
+        .map(c => ({ ...c, n: sem === "all" ? c.count : c.bySem?.[sem] || 0 }))
+        .filter(c => CITY_POS[c.city] && (c.n >= MIN_SHOW || (isMine(c) && c.n > 0)))
+        .sort((a, b) => b.n - a.n),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data, sem, myDest?.city, myDest?.country]
   );
-  const max = Math.max(1, ...cities.map(c => c.count));
-  const radius = n => 4 + 14 * Math.sqrt(n / max);
+
+  const [bx, by, bw, bh] = VIEWS[view].box;
+  const k = bw / MAP_W; // < 1 quand on zoome : on réduit la taille des points en conséquence
+  const max = Math.max(1, ...cities.map(c => c.n));
+  const z = Math.max(k, 0.24); // facteur de taille des points selon le zoom
+  const radius = n => (4 + 14 * Math.sqrt(n / max)) * z;
 
   const continents = useMemo(() => {
     const acc = {};
     for (const c of cities) {
       const cont = CITY_POS[c.city][2];
-      acc[cont] = (acc[cont] || 0) + c.count;
+      acc[cont] = (acc[cont] || 0) + c.n;
     }
     return Object.entries(acc).sort((a, b) => b[1] - a[1]);
   }, [cities]);
-  const shown = cities.reduce((s, c) => s + c.count, 0);
+  const shown = cities.reduce((s, c) => s + c.n, 0);
+  const mine = cities.find(isMine);
 
   const card = { background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, boxShadow: T.shadow };
+  const pill = active => ({
+    padding: "6px 12px", fontSize: 13, borderRadius: 999, cursor: "pointer",
+    border: `1px solid ${active ? T.text : T.border}`,
+    background: active ? T.text : T.bgCard, color: active ? T.bgCard : T.text,
+    fontWeight: active ? 600 : 400,
+  });
 
   return (
     <div style={{ minHeight: "100vh", background: T.bg, padding: "2rem 1rem", display: "flex", justifyContent: "center" }}>
       <div style={{ width: "100%", maxWidth: 760 }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 13, padding: "0 0 24px", display: "flex", alignItems: "center", gap: 4 }}>← Retour</button>
+        <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 13, padding: "0 0 24px", display: "flex", alignItems: "center", gap: 4 }}>{backLabel}</button>
 
         <h1 style={{ fontSize: 28, fontWeight: 700, color: T.text, margin: "0 0 8px", letterSpacing: "-0.5px" }}>Où part la promo ?</h1>
-        <p style={{ fontSize: 14, color: T.muted, margin: "0 0 24px", lineHeight: 1.6 }}>
+        <p style={{ fontSize: 14, color: T.muted, margin: "0 0 20px", lineHeight: 1.6 }}>
           Chaque point rouge est une ville d'échange. Plus il est gros, plus il y a d'étudiants. Aucun nom n'est affiché.
         </p>
 
@@ -53,42 +88,68 @@ export default function WorldMap({ T, onBack }) {
 
         {data && (
           <>
-            <div style={{ ...card, padding: 8, position: "relative" }}>
-              <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ width: "100%", height: "auto", display: "block" }} onClick={() => setSelected(null)}>
-                <path d={LAND_PATH} fill="#e7e5e0" stroke="#ffffff" strokeWidth={0.6} />
-                {[...cities].reverse().map(c => {
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {SEMESTERS.map(([v, label]) => (
+                  <button key={v} style={pill(sem === v)} onClick={() => { setSem(v); setSelected(null); }}>{label}</button>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                {Object.entries(VIEWS).map(([v, { label }]) => (
+                  <button key={v} style={pill(view === v)} onClick={() => setView(v)}>{label}</button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ ...card, padding: 8, position: "relative", overflow: "hidden" }}>
+              <svg viewBox={`${bx} ${by} ${bw} ${bh}`} style={{ width: "100%", height: "auto", display: "block", aspectRatio: `${MAP_W} / ${MAP_H}` }}
+                   preserveAspectRatio="xMidYMid meet" onClick={() => setSelected(null)}>
+                <path d={LAND_PATH} fill="#e7e5e0" stroke="#ffffff" strokeWidth={0.6 * k} />
+                {[...cities].reverse().sort((a, b) => isMine(a) - isMine(b)).map(c => {
                   const [x, y] = CITY_POS[c.city];
-                  const r = radius(c.count);
-                  const active = selected?.city === c.city;
+                  const r = radius(c.n);
+                  const me = isMine(c);
+                  const active = selected?.city === c.city && selected?.country === c.country;
                   return (
                     <g key={c.country + c.city} style={{ cursor: "pointer" }}
                        onClick={e => { e.stopPropagation(); setSelected(c); }}>
-                      <circle cx={x} cy={y} r={Math.max(r, 10)} fill="transparent" />
-                      <circle cx={x} cy={y} r={r} fill={RED} fillOpacity={active ? 0.95 : 0.7}
-                              stroke="#ffffff" strokeWidth={active ? 2 : 1} />
-                      {r >= 11 && (
-                        <text x={x} y={y + 4} textAnchor="middle" fontSize={11} fontWeight={700} fill="#ffffff" pointerEvents="none">{c.count}</text>
+                      <circle cx={x} cy={y} r={Math.max(r, 10 * k)} fill="transparent" />
+                      {me && <circle cx={x} cy={y} r={r + 4 * z} fill="none" stroke={MINE} strokeWidth={1.5 * z} />}
+                      <circle cx={x} cy={y} r={r} fill={me ? MINE : RED} fillOpacity={active || me ? 0.95 : 0.7}
+                              stroke="#ffffff" strokeWidth={(active ? 2 : 1) * z} />
+                      {r >= 11 * z && (
+                        <text x={x} y={y + 4 * z} textAnchor="middle" fontSize={11 * z} fontWeight={700} fill="#ffffff" pointerEvents="none">{c.n}</text>
                       )}
-                      <title>{`${c.city} · ${c.count} étudiant${c.count > 1 ? "s" : ""}`}</title>
+                      <title>{`${c.city} · ${c.n} étudiant${c.n > 1 ? "s" : ""}`}</title>
                     </g>
                   );
                 })}
               </svg>
               {selected && (
                 <div style={{ position: "absolute", left: 16, bottom: 16, ...card, padding: "8px 12px", fontSize: 13, color: T.text }}>
-                  <strong>{selected.city}</strong> <span style={{ color: T.muted }}>({selected.country})</span> · {selected.count} étudiant{selected.count > 1 ? "s" : ""}
+                  <strong>{selected.city}</strong> <span style={{ color: T.muted }}>({selected.country})</span> · {selected.n} étudiant{selected.n > 1 ? "s" : ""}
+                  {isMine(selected) && <span style={{ color: MINE, fontWeight: 600 }}> · ta destination</span>}
                 </div>
               )}
             </div>
+
+            {myDest && (
+              <p style={{ margin: "10px 0 0", fontSize: 13, color: T.muted, display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: MINE, display: "inline-block" }} />
+                {mine
+                  ? <>Ta destination : <strong style={{ color: T.text }}>{mine.city}</strong> · {mine.n} étudiant{mine.n > 1 ? "s" : ""}{sem !== "all" ? " ce semestre" : ""} (toi compris)</>
+                  : <>Ta destination ({myDest.city}) n'apparaît pas avec ce filtre.</>}
+              </p>
+            )}
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 10, marginTop: 10 }}>
               <div style={{ ...card, padding: 16 }}>
                 <p style={{ margin: "0 0 12px", fontSize: 12, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.5px" }}>Top destinations</p>
                 {cities.slice(0, 5).map((c, i) => (
                   <div key={c.country + c.city} onClick={() => setSelected(c)}
-                       style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14, color: T.text, cursor: "pointer", borderTop: i ? `1px solid ${T.border}` : "none" }}>
+                       style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14, color: isMine(c) ? MINE : T.text, cursor: "pointer", borderTop: i ? `1px solid ${T.border}` : "none" }}>
                     <span>{i + 1}. {c.city} <span style={{ color: T.faint }}>· {c.country}</span></span>
-                    <strong>{c.count}</strong>
+                    <strong>{c.n}</strong>
                   </div>
                 ))}
                 {!cities.length && <p style={{ margin: 0, fontSize: 14, color: T.muted }}>Pas encore assez d'inscrits.</p>}
@@ -110,7 +171,7 @@ export default function WorldMap({ T, onBack }) {
             </div>
 
             <p style={{ marginTop: 16, fontSize: 12, color: T.faint, textAlign: "center" }}>
-              {data.total} étudiants · {cities.length} villes · {new Set(cities.map(c => c.country)).size} pays
+              {shown} étudiants · {cities.length} villes · {new Set(cities.map(c => c.country)).size} pays
             </p>
           </>
         )}

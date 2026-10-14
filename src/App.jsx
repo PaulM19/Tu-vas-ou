@@ -660,6 +660,9 @@ export default function App() {
                                               <SemBadge semester={registered.semester} />
                                   </div>
                         </div>
+                        <button onClick={() => setScreen("map")} style={{ padding: "12px", background: "transparent", color: T.text, border: `1px solid ${T.border}`, borderRadius: T.radius, fontSize: 14, cursor: "pointer", width: "100%", marginTop: -12, marginBottom: 24 }}>
+                                  🌍 Voir où part la promo
+                        </button>
                         <div style={{ marginBottom: 20 }}>
                                   <h2 style={{ fontSize: 20, fontWeight: 700, color: T.text, margin: "0 0 4px", letterSpacing: "-0.2px" }}>
                                     {matches.length === 0 ? "Aucun match pour l'instant" : `${matches.length} match${matches.length > 1 ? "s" : ""} trouvé${matches.length > 1 ? "s" : ""}`}
@@ -701,7 +704,12 @@ export default function App() {
           </div>
         );
   // ── CARTE ──
-if (screen === "map") return <WorldMap T={T} onBack={() => setScreen("home")} />;
+if (screen === "map") {
+      const fromMatches = !!registered;
+      return <WorldMap T={T} myDest={registered?.destination || null}
+                       backLabel={fromMatches ? "← Mes matchs" : "← Retour"}
+                       onBack={() => setScreen(fromMatches ? "matches" : "home")} />;
+    }
     // ── PRIVACY ──
     if (screen === "privacy") return (
           <div style={{ minHeight: "100vh", background: T.bg, padding: "2rem 1rem" }}>
