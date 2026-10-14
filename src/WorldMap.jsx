@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { MAP_W, MAP_H, LAND_PATH, CITY_POS } from "./mapData";
 import { ShareBar, MAP_URL, MAP_MESSAGE } from "./share";
 
-// Une ville n'apparaît que si au moins MIN_SHOW étudiants y partent.
-// Passe à 2 ou 3 si tu veux éviter qu'un étudiant seul dans sa ville soit reconnaissable.
-const MIN_SHOW = 1;
+// Une ville n'apparaît que si au moins MIN_SHOW étudiants y partent (avec le filtre de semestre choisi),
+// pour qu'un étudiant seul dans sa ville ne soit pas reconnaissable.
+// Exception : l'étudiant connecté voit toujours sa propre destination.
+const MIN_SHOW = 2;
 
 const RED = "#dc2626";
 const MINE = "#2563eb"; // couleur de "ta destination"
