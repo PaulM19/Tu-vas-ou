@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import WorldMap from "./WorldMap";
+import { ShareBar, SITE_URL, destinationMessage } from "./share";
 const DOMAIN = "@edu.em-lyon.com";
 
 async function getStats() {
@@ -367,7 +368,7 @@ function StudentCard({ student }) {
 }
 
 export default function App() {
-    const [screen, setScreen] = useState("home");
+    const [screen, setScreen] = useState(() => (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("carte") ? "map" : "home"));
     const [regStep, setRegStep] = useState(1);
     const [form, setForm] = useState({ firstName: "", lastName: "", email: "", destQuery: "", destination: null, semester: "fall", lookingFor: [], countryCode: "+33", whatsappNumber: "", consent: false });
     const [verifCode, setVerifCode] = useState("");
@@ -663,21 +664,23 @@ export default function App() {
                         <button onClick={() => setScreen("map")} style={{ padding: "12px", background: "transparent", color: T.text, border: `1px solid ${T.border}`, borderRadius: T.radius, fontSize: 14, cursor: "pointer", width: "100%", marginTop: -12, marginBottom: 24 }}>
                                   🌍 Voir où part la promo
                         </button>
+                        <div style={{ marginTop: -12, marginBottom: 24 }}>
+                                  <ShareBar T={T} url={SITE_URL}
+                                            message={destinationMessage(registered.destination, registered.semester)}
+                                            title="Plus on est d'inscrits, plus tu as de matchs"
+                                            subtitle="Envoie le lien dans ton groupe de promo." />
+                        </div>
                         <div style={{ marginBottom: 20 }}>
                                   <h2 style={{ fontSize: 20, fontWeight: 700, color: T.text, margin: "0 0 4px", letterSpacing: "-0.2px" }}>
                                     {matches.length === 0 ? "Aucun match pour l'instant" : `${matches.length} match${matches.length > 1 ? "s" : ""} trouvé${matches.length > 1 ? "s" : ""}`}
                                   </h2>
                                   <p style={{ margin: 0, fontSize: 14, color: T.muted }}>
-                                    {matches.length === 0 ? "Partage l'app à tes amis pour trouver des camarades." : "Des étudiants qui partent au même endroit que toi."}
+                                    {matches.length === 0 ? "Partage le lien à ta promo pour trouver des camarades." : "Des étudiants qui partent au même endroit que toi."}
                                   </p>
                         </div>
                   {matches.length === 0 ? (
                       <div style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, padding: "32px 20px", textAlign: "center", boxShadow: T.shadow }}>
                                   <p style={{ margin: 0, fontSize: 14, color: T.muted, lineHeight: 1.6 }}>Tu seras le premier à cette destination.<br />Reviens bientôt !</p>
-                                  <button onClick={() => { if (navigator.share) navigator.share({ title: "Tu pars où en échange ?", text: "Trouve qui part en échange avec toi !", url: "https://tu-pars-ou.vercel.app" }); }}
-                                                  style={{ marginTop: 16, padding: "10px 20px", background: T.accent, color: T.accentFg, border: "none", borderRadius: T.radius, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                                                Partager l'app
-                                  </button>
                       </div>
                     ) : (
                       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -708,7 +711,7 @@ if (screen === "map") {
       const fromMatches = !!registered;
       return <WorldMap T={T} myDest={registered?.destination || null}
                        backLabel={fromMatches ? "← Mes matchs" : "← Retour"}
-                       onBack={() => setScreen(fromMatches ? "matches" : "home")} />;
+                       onBack={() => { if (window.location.search) window.history.replaceState(null, "", window.location.pathname); setScreen(fromMatches ? "matches" : "home"); }} />;
     }
     // ── PRIVACY ──
     if (screen === "privacy") return (

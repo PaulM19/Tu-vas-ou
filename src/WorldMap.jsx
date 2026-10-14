@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MAP_W, MAP_H, LAND_PATH, CITY_POS } from "./mapData";
+import { ShareBar, MAP_URL, MAP_MESSAGE } from "./share";
 
 // Une ville n'apparaît que si au moins MIN_SHOW étudiants y partent.
 // Passe à 2 ou 3 si tu veux éviter qu'un étudiant seul dans sa ville soit reconnaissable.
@@ -300,6 +301,12 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div style={{ marginTop: 10 }}>
+              <ShareBar T={T} url={MAP_URL} message={MAP_MESSAGE}
+                        title="Partage la carte"
+                        subtitle="Le lien ouvre directement cette carte." />
             </div>
 
             <p style={{ marginTop: 16, fontSize: 12, color: T.faint, textAlign: "center" }}>
