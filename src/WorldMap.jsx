@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { MAP_W, MAP_H, LAND_PATH, CITY_POS } from "./mapData";
 import { ShareBar, MAP_URL, MAP_MESSAGE } from "./share";
 
-// Une ville n'apparaît que si au moins MIN_SHOW étudiants y partent (avec le filtre de semestre choisi),
-// pour qu'un étudiant seul dans sa ville ne soit pas reconnaissable.
-// Exception : l'étudiant connecté voit toujours sa propre destination.
-const MIN_SHOW = 2;
+// Une ville n'apparaît que si au moins MIN_SHOW étudiants y partent (avec le filtre de semestre choisi).
+// À 1, toutes les villes sont visibles. Passer à 2 masque les villes où un étudiant est seul
+// (28 villes sur 58 au 14/10/2026). L'étudiant connecté voit toujours sa propre destination.
+const MIN_SHOW = 1;
 
 const RED = "#dc2626";
 const MINE = "#2563eb"; // couleur de "ta destination"
