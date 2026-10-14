@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-
+import WorldMap from "./WorldMap";
 const DOMAIN = "@edu.em-lyon.com";
 
 async function getStats() {
@@ -465,6 +465,9 @@ export default function App() {
                                       <button onClick={() => setScreen("lookup")} style={{ padding: "13px", background: "transparent", color: T.text, border: `1px solid ${T.border}`, borderRadius: T.radius, fontSize: 14, cursor: "pointer", width: "100%" }}>
                                                     J'ai déjà un compte
                                       </button>
+                              <button onClick={() => setScreen("map")} style={{ padding: "13px", background: "transparent", color: T.text, border: `1px solid ${T.border}`, borderRadius: T.radius, fontSize: 14, cursor: "pointer", width: "100%" }}>
+  🌍 Voir la carte des départs
+</button>
                           </div>
                           <p style={{ marginTop: 24, fontSize: 12, color: T.faint, textAlign: "center" }}>
                                       140 universités partenaires dans {stats.countries} pays ·{" "}
@@ -697,7 +700,8 @@ export default function App() {
                 </div>
           </div>
         );
-  
+  // ── CARTE ──
+if (screen === "map") return <WorldMap T={T} onBack={() => setScreen("home")} />;
     // ── PRIVACY ──
     if (screen === "privacy") return (
           <div style={{ minHeight: "100vh", background: T.bg, padding: "2rem 1rem" }}>
