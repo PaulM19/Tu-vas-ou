@@ -662,7 +662,7 @@ export default function App() {
                                   </div>
                         </div>
                         <button onClick={() => setScreen("map")} style={{ padding: "12px", background: "transparent", color: T.text, border: `1px solid ${T.border}`, borderRadius: T.radius, fontSize: 14, cursor: "pointer", width: "100%", marginTop: -12, marginBottom: 24 }}>
-                                  🌍 Voir où part la promo
+                                  Voir où part la promo
                         </button>
                         <div style={{ marginTop: -12, marginBottom: 24 }}>
                                   <ShareBar T={T} url={SITE_URL}
