@@ -2,7 +2,6 @@ import { useState } from "react";
 
 // Adresse publique du site (utilisée dans les messages partagés)
 export const SITE_URL = "https://tu-pars-ou.vercel.app";
-export const MAP_URL = `${SITE_URL}/?carte`;
 
 const SEM_LABEL = { fall: "au Fall", spring: "au Spring", double: "en double diplôme" };
 
@@ -13,8 +12,8 @@ export function destinationMessage(dest, semester) {
          `Trouve les étudiants emlyon qui partent au même endroit que toi : ${SITE_URL}`;
 }
 
-// Message partagé depuis la carte
-export const MAP_MESSAGE = `Regarde où part la promo emlyon en échange :\n${MAP_URL}`;
+// Message partagé depuis la carte (le lien mène à la page d'accueil)
+export const MAP_MESSAGE = `Regarde où part la promo emlyon en échange :\n${SITE_URL}`;
 
 const WA_GREEN = "#25D366";
 
