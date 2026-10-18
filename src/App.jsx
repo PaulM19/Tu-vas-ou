@@ -13,11 +13,17 @@ async function getDestinationPreview(school) {
     return res.ok ? await res.json() : { count: 0, initials: [] };
 }
 
-async function getMatches(email) {
+// Jeton de session (renvoyé par /api/verify-code) gardé sur l'appareil pour rester connecté.
+const TOKEN_KEY = "tpo_session";
+function loadToken() { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } }
+function saveToken(t) { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch {} }
+const authHeaders = (token) => ({ "Content-Type": "application/json", Authorization: `Bearer ${token}` });
+
+async function getMatches(token) {
     const res = await fetch("/api/matches", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
+          headers: authHeaders(token),
+          body: "{}",
     });
     if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -26,10 +32,10 @@ async function getMatches(email) {
     return res.json();
 }
 
-async function insertStudent(s) {
+async function insertStudent(s, token) {
     const res = await fetch("/api/register", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: authHeaders(token),
           body: JSON.stringify({
                   firstName: s.firstName,
                   lastName: s.lastName,
@@ -376,12 +382,23 @@ export default function App() {
     const [verifCode, setVerifCode] = useState("");
     const [verifError, setVerifError] = useState("");
     const [lookupEmail, setLookupEmail] = useState("");
+    const [lookupCodeSent, setLookupCodeSent] = useState(false);
+    const [lookupCode, setLookupCode] = useState("");
+    const [token, setToken] = useState(null);
     const [registered, setRegistered] = useState(null);
     const [matches, setMatches] = useState([]);
     const [stats, setStats] = useState(null); // null tant que les chiffres chargent
     const [destPreview, setDestPreview] = useState({ count: 0, initials: [] });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+
+  useEffect(() => {
+        // Reconnexion automatique si un jeton valide est présent sur cet appareil.
+        const saved = loadToken();
+        if (saved) getMatches(saved).then(result => {
+                setToken(saved); setRegistered(result.student); setMatches(result.matches || []);
+        }).catch(() => saveToken(null));
+  }, []);
 
   useEffect(() => {
         getStats().then(setStats).catch(() => setStats({ total: "—", countries: "—" }));
@@ -407,6 +424,7 @@ export default function App() {
                 const res = await fetch("/api/verify-code", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: form.email, code: verifCode }) });
                 const data = await res.json();
                 if (!res.ok) { setVerifError(data.error); setLoading(false); return; }
+                setToken(data.token); saveToken(data.token);
                 setRegStep(3);
         } catch { setVerifError("Erreur réseau. Réessaie."); }
         setLoading(false);
@@ -415,11 +433,11 @@ export default function App() {
   async function handleSubmit() {
         setError(""); setLoading(true);
         try {
-                const result = await insertStudent(form);
+                const result = await insertStudent(form, token);
                 setRegistered(result.student);
                 setMatches(result.matches || []);
                 if (result.matches && result.matches.length > 0) {
-                          fetch("/api/notify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ newStudent: result.student, matches: result.matches }) }).catch(() => {});
+                          fetch("/api/notify", { method: "POST", headers: authHeaders(token), body: "{}" }).catch(() => {});
                 }
                 setScreen("matches");
         } catch (e) {
@@ -428,10 +446,26 @@ export default function App() {
         setLoading(false);
   }
 
+  // Retrouver ses matchs : on prouve qu'on possède l'adresse avec un code envoyé par email.
+  async function sendLookupCode() {
+        setError(""); setLoading(true);
+        try {
+                const res = await fetch("/api/send-code", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: lookupEmail.toLowerCase().trim() }) });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                setLookupCodeSent(true);
+        } catch (e) { setError(e.message || "Erreur réseau. Réessaie."); }
+        setLoading(false);
+  }
+
   async function handleLookup() {
         setError(""); setLoading(true);
         try {
-                const result = await getMatches(lookupEmail.toLowerCase().trim());
+                const vr = await fetch("/api/verify-code", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: lookupEmail.toLowerCase().trim(), code: lookupCode }) });
+                const vdata = await vr.json();
+                if (!vr.ok) throw new Error(vdata.error);
+                setToken(vdata.token); saveToken(vdata.token);
+                const result = await getMatches(vdata.token);
                 setRegistered(result.student);
                 setMatches(result.matches || []);
                 setScreen("matches");
@@ -467,7 +501,7 @@ export default function App() {
                                       <button onClick={() => { setRegStep(1); setScreen("register"); }} style={{ padding: "14px", background: T.accent, color: T.accentFg, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: "pointer", width: "100%" }}>
                                                     Trouver mes matchs →
                                       </button>
-                                      <button onClick={() => setScreen("lookup")} style={{ padding: "13px", background: "transparent", color: T.text, border: `1px solid ${T.border}`, borderRadius: T.radius, fontSize: 14, cursor: "pointer", width: "100%" }}>
+                                      <button onClick={() => setScreen(registered ? "matches" : "lookup")} style={{ padding: "13px", background: "transparent", color: T.text, border: `1px solid ${T.border}`, borderRadius: T.radius, fontSize: 14, cursor: "pointer", width: "100%" }}>
                                                     J'ai déjà un compte
                                       </button>
                               <div style={{ marginTop: 14 }}>
@@ -530,16 +564,16 @@ export default function App() {
                     <div>
                                 <p style={{ fontSize: 12, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" }}>Étape 2 sur 4</p>
                                 <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}>Vérifie ton email</h2>
-                                <p style={{ fontSize: 14, color: T.muted, margin: "0 0 6px" }}>On a envoyé un code à 4 chiffres à</p>
+                                <p style={{ fontSize: 14, color: T.muted, margin: "0 0 6px" }}>On a envoyé un code à 6 chiffres à</p>
                                 <p style={{ fontSize: 14, fontWeight: 600, color: T.text, margin: "0 0 28px" }}>{form.email}</p>
                                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                                              <input type="text" inputMode="numeric" maxLength={4} placeholder="_ _ _ _" value={verifCode}
-                                                                onChange={e => setVerifCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                                                                onKeyDown={e => e.key === "Enter" && verifCode.length === 4 && verifyCode()}
-                                                                autoFocus style={{ ...inputStyle, fontSize: 28, fontWeight: 700, letterSpacing: 16, textAlign: "center" }} />
+                                              <input type="text" inputMode="numeric" maxLength={6} autoComplete="one-time-code" placeholder="_ _ _ _ _ _" value={verifCode}
+                                                                onChange={e => setVerifCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                                                                onKeyDown={e => e.key === "Enter" && verifCode.length === 6 && verifyCode()}
+                                                                autoFocus style={{ ...inputStyle, fontSize: 28, fontWeight: 700, letterSpacing: 10, textAlign: "center" }} />
                                   {verifError && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{verifError}</p>}
-                                              <button onClick={verifyCode} disabled={loading || verifCode.length !== 4}
-                                                                style={{ padding: "13px", background: verifCode.length === 4 ? T.accent : T.border, color: verifCode.length === 4 ? T.accentFg : T.faint, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: verifCode.length === 4 ? "pointer" : "not-allowed", width: "100%", opacity: loading ? 0.7 : 1 }}>
+                                              <button onClick={verifyCode} disabled={loading || verifCode.length !== 6}
+                                                                style={{ padding: "13px", background: verifCode.length === 6 ? T.accent : T.border, color: verifCode.length === 6 ? T.accentFg : T.faint, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: verifCode.length === 6 ? "pointer" : "not-allowed", width: "100%", opacity: loading ? 0.7 : 1 }}>
                                                 {loading ? "Vérification…" : "Confirmer →"}
                                               </button>
                                               <button onClick={() => { setVerifCode(""); sendVerifCode(); }} disabled={loading}
@@ -638,12 +672,28 @@ export default function App() {
                         <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}>Retrouver mes matchs</h2>
                         <p style={{ fontSize: 14, color: T.muted, margin: "0 0 28px" }}>Entre l'adresse avec laquelle tu t'es inscrit.</p>
                         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                                  <EmailInput value={lookupEmail} onChange={setLookupEmail} onEnter={handleLookup} />
+                          {!lookupCodeSent ? (<>
+                                  <EmailInput value={lookupEmail} onChange={setLookupEmail} onEnter={sendLookupCode} />
                           {error && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{error}</p>}
-                                  <button onClick={handleLookup} disabled={loading || !lookupEmail.includes("@")}
+                                  <button onClick={sendLookupCode} disabled={loading || !lookupEmail.includes("@")}
                                                 style={{ padding: "13px", background: T.accent, color: T.accentFg, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: "pointer", width: "100%", opacity: (loading || !lookupEmail.includes("@")) ? 0.5 : 1 }}>
-                                    {loading ? "Recherche…" : "Voir mes matchs →"}
+                                    {loading ? "Envoi du code…" : "Recevoir un code →"}
                                   </button>
+                          </>) : (<>
+                                  <p style={{ fontSize: 14, color: T.muted, margin: 0 }}>Code à 6 chiffres envoyé à <strong style={{ color: T.text }}>{lookupEmail}</strong></p>
+                                  <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="_ _ _ _ _ _" value={lookupCode} autoFocus
+                                                onChange={e => setLookupCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                                                onKeyDown={e => e.key === "Enter" && lookupCode.length === 6 && handleLookup()}
+                                                style={{ ...inputStyle, fontSize: 28, fontWeight: 700, letterSpacing: 10, textAlign: "center" }} />
+                          {error && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{error}</p>}
+                                  <button onClick={handleLookup} disabled={loading || lookupCode.length !== 6}
+                                                style={{ padding: "13px", background: T.accent, color: T.accentFg, border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, cursor: "pointer", width: "100%", opacity: (loading || lookupCode.length !== 6) ? 0.5 : 1 }}>
+                                    {loading ? "Vérification…" : "Voir mes matchs →"}
+                                  </button>
+                                  <button onClick={() => { setLookupCodeSent(false); setLookupCode(""); setError(""); }} style={{ padding: "10px", background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: T.radius, fontSize: 13, cursor: "pointer", width: "100%" }}>
+                                              Changer d'adresse
+                                  </button>
+                          </>)}
                                   <button onClick={() => { setRegStep(1); setScreen("register"); }} style={{ padding: "12px", background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: T.radius, fontSize: 13, cursor: "pointer", width: "100%" }}>
                                               Pas encore inscrit ? S'inscrire
                                   </button>
@@ -696,11 +746,16 @@ export default function App() {
                                               Tes données sont partagées uniquement avec tes matchs.{" "}
                                               <span onClick={() => setScreen("privacy")} style={{ textDecoration: "underline", cursor: "pointer" }}>Politique de confidentialité</span>
                                   </p>
+                                  <button onClick={() => { saveToken(null); setToken(null); setRegistered(null); setMatches([]); setScreen("home"); }}
+                                              style={{ width: "100%", padding: "10px", marginBottom: 8, background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: T.radius, fontSize: 13, cursor: "pointer" }}>
+                                              Se déconnecter
+                                  </button>
                                   <button onClick={async () => {
                         if (!window.confirm("Supprimer ton inscription ? Cette action est irréversible.")) return;
                         try {
-                                        const res = await fetch("/api/delete-me", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: registered.email }) });
+                                        const res = await fetch("/api/delete-me", { method: "POST", headers: authHeaders(token), body: "{}" });
                                         if (!res.ok) throw new Error();
+                                        saveToken(null); setToken(null);
                                         setRegistered(null); setMatches([]); setScreen("home");
                         } catch { alert("Erreur lors de la suppression. Contacte monzatpaul@gmail.com"); }
           }} style={{ width: "100%", padding: "10px", background: "transparent", color: T.red, border: `1px solid ${T.red}20`, borderRadius: T.radius, fontSize: 13, cursor: "pointer" }}>

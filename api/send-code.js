@@ -1,3 +1,5 @@
+import crypto from "crypto";
+
 const SUPABASE_URL = "https://fckolgfthpkjmtviysba.supabase.co";
 
 const EMAILS_PAUSED = false; // Site en construction : mettre a false pour reactiver l'envoi des emails.
@@ -42,7 +44,7 @@ async function sendEmail(to, subject, html) {
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { email } = req.body;
+  const { email } = req.body || {};
   if (!email || !email.toLowerCase().trim().endsWith("@edu.em-lyon.com")) {
     return res.status(403).json({ error: "Adresse email emlyon requise." });
   }
@@ -63,7 +65,7 @@ export default async function handler(req, res) {
     console.log("Rate limit check skipped:", e.message);
   }
 
-  const code = String(Math.floor(1000 + Math.random() * 9000));
+  const code = String(crypto.randomInt(100000, 1000000)); // 6 chiffres, générateur cryptographique
   const expiresAt = new Date(Date.now() + 600000).toISOString();
 
   await sbFetch(`verification_codes?email=eq.${encodeURIComponent(cleanEmail)}`, { method: "DELETE" });

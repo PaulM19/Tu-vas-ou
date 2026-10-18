@@ -1,3 +1,24 @@
+import { requireUser, escapeHtml } from "./_lib/auth.js";
+
+const SUPABASE_URL = "https://fckolgfthpkjmtviysba.supabase.co";
+
+async function sbGet(path) {
+  const key = process.env.SUPABASE_SERVICE_KEY;
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+  return r.ok ? r.json() : [];
+}
+
+function shape(row) {
+  return {
+    email: row.email,
+    firstName: escapeHtml(row.first_name),
+    lastName: escapeHtml(row.last_name),
+    whatsapp: row.whatsapp,
+    semester: row.semester,
+    destination: { school: escapeHtml(row.school), city: escapeHtml(row.city), country: escapeHtml(row.country) },
+  };
+}
+
 const EMAILS_PAUSED = true; // Notifications de match désactivées à la demande de Paul. Le code de vérification (send-code.js) reste actif.
 
 async function sendEmail(to, subject, html) {
@@ -22,7 +43,16 @@ async function sendEmail(to, subject, html) {
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { newStudent, matches } = req.body;
+  // Les données viennent de la base, jamais du navigateur : impossible d'envoyer
+  // un email arbitraire ou d'injecter du HTML via cette route.
+  const email = requireUser(req, res);
+  if (!email) return;
+  const meRows = await sbGet(`students?select=*&email=eq.${encodeURIComponent(email)}&limit=1`);
+  if (!meRows.length) return res.status(404).json({ error: "Inscription introuvable." });
+  const newStudent = shape(meRows[0]);
+  const matches = (await sbGet(`students?select=*&school=eq.${encodeURIComponent(meRows[0].school)}`))
+    .filter(r => r.email.toLowerCase() !== email)
+    .map(shape);
 
   const dest = newStudent.destination.school;
   const city = newStudent.destination.city;

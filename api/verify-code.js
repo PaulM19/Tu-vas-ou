@@ -1,3 +1,5 @@
+import { signSession, safeEqual } from "./_lib/auth.js";
+
 const SUPABASE_URL = "https://fckolgfthpkjmtviysba.supabase.co";
 
 async function sbFetch(path, options = {}) {
@@ -18,7 +20,7 @@ async function sbFetch(path, options = {}) {
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { email, code } = req.body;
+  const { email, code } = req.body || {};
   if (!email || !code) return res.status(400).json({ error: "Email et code requis." });
 
   const cleanEmail = email.toLowerCase().trim();
@@ -45,7 +47,7 @@ export default async function handler(req, res) {
   }
 
   // Vérifier le code
-  if (stored.code !== String(code).trim()) {
+  if (!safeEqual(stored.code, String(code).trim())) {
     // Incrémenter les tentatives
     await sbFetch(`verification_codes?email=eq.${encodeURIComponent(cleanEmail)}`, {
       method: "PATCH",
@@ -57,11 +59,5 @@ export default async function handler(req, res) {
 
   // Code valide — supprimer
   await sbFetch(`verification_codes?email=eq.${encodeURIComponent(cleanEmail)}`, { method: "DELETE" });
-    await sbFetch(`verified_emails?email=eq.${encodeURIComponent(cleanEmail)}`, { method: "DELETE" });
-    await sbFetch("verified_emails", {
-          method: "POST",
-          prefer: "return=minimal",
-          body: JSON.stringify({ email: cleanEmail, verified_at: new Date().toISOString() }),
-    });
-  return res.status(200).json({ ok: true, verified: true });
+  return res.status(200).json({ ok: true, verified: true, token: signSession(cleanEmail) });
 }

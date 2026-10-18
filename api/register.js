@@ -1,3 +1,5 @@
+import { requireUser } from "./_lib/auth.js";
+
 const SUPABASE_URL = "https://fckolgfthpkjmtviysba.supabase.co";
 const DOMAIN = "@edu.em-lyon.com";
 
@@ -32,23 +34,31 @@ function shape(row) {
 export default async function handler(req, res) {
     if (req.method !== "POST") return res.status(405).end();
 
-const { firstName, lastName, email, whatsapp, semester, lookingFor, destination } = req.body || {};
+const { firstName, lastName, whatsapp, semester, lookingFor, destination } = req.body || {};
 
-const cleanEmail = (email || "").toLowerCase().trim();
-    if (!firstName?.trim() || !lastName?.trim() || !cleanEmail.endsWith(DOMAIN)) {
+// Email prouvé par le code de vérification (jeton de session signé).
+const cleanEmail = requireUser(req, res);
+    if (!cleanEmail) return;
+    if (!firstName?.trim() || !lastName?.trim() || !cleanEmail?.endsWith(DOMAIN)) {
         return res.status(400).json({ error: "Informations manquantes ou invalides." });
     }
     if (!destination?.school) {
         return res.status(400).json({ error: "Destination manquante." });
     }
-
-const { data: verifiedRows } = await sbFetch(
-    `verified_emails?select=*&email=eq.${encodeURIComponent(cleanEmail)}&limit=1`
-    );
-    const verifiedRow = verifiedRows && verifiedRows[0];
-    const isFresh = verifiedRow && (Date.now() - new Date(verifiedRow.verified_at).getTime() < 30 * 60 * 1000);
-    if (!isFresh) {
-        return res.status(403).json({ error: "Verifie d'abord ton email avant de t'inscrire." });
+    const tooLong = (v, n) => v != null && String(v).length > n;
+    if (tooLong(firstName, 60) || tooLong(lastName, 60) || tooLong(whatsapp, 25) || tooLong(destination.school, 150)
+        || tooLong(destination.city, 80) || tooLong(destination.country, 80)) {
+        return res.status(400).json({ error: "Informations trop longues." });
+    }
+    if (whatsapp && !/^[+0-9 ().-]{4,25}$/.test(whatsapp)) {
+        return res.status(400).json({ error: "Numéro WhatsApp invalide." });
+    }
+    if (!["fall", "spring", "double", null, undefined].includes(semester)) {
+        return res.status(400).json({ error: "Semestre invalide." });
+    }
+    if (lookingFor != null && (!Array.isArray(lookingFor) || lookingFor.length > 10
+        || lookingFor.some(x => typeof x !== "string" || x.length > 40))) {
+        return res.status(400).json({ error: "Informations invalides." });
     }
 
 const { ok, status, data } = await sbFetch("students", {
@@ -76,7 +86,6 @@ if (!ok) {
     return res.status(500).json({ error: "Erreur lors de l'inscription." });
 }
 
-await sbFetch(`verified_emails?email=eq.${encodeURIComponent(cleanEmail)}`, { method: "DELETE" });
 
 const student = shape(data[0]);
 

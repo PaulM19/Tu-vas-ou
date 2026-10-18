@@ -1,8 +1,14 @@
+import { requireUser } from "./_lib/auth.js";
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
-const { destination } = req.body;
-  if (!destination) return res.status(400).json({ error: "Missing destination" });
+if (!requireUser(req, res)) return; // réservé aux étudiants connectés (coût API)
+  const { destination } = req.body || {};
+  const ok = (v) => typeof v === "string" && v.length > 0 && v.length <= 120 && !/[{}`$]/.test(v);
+  if (!destination || !ok(destination.school) || !ok(destination.city) || !ok(destination.country)) {
+    return res.status(400).json({ error: "Missing destination" });
+  }
 
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTHROPIC_KEY) return res.status(500).json({ error: "Missing API key" });

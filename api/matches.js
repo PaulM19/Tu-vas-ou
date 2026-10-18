@@ -1,3 +1,5 @@
+import { requireUser } from "./_lib/auth.js";
+
 const SUPABASE_URL = "https://fckolgfthpkjmtviysba.supabase.co";
 
 async function sbFetch(path, options = {}) {
@@ -31,9 +33,9 @@ function shape(row) {
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
-const { email } = req.body || {};
-  const cleanEmail = (email || "").toLowerCase().trim();
-  if (!cleanEmail) return res.status(400).json({ error: "Email requis." });
+// L'email vient du jeton de session signé, jamais du corps de la requête.
+  const cleanEmail = requireUser(req, res);
+  if (!cleanEmail) return;
 
 const { data: meRows } = await sbFetch(
   `students?select=*&email=eq.${encodeURIComponent(cleanEmail)}&limit=1`
