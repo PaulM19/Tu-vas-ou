@@ -528,7 +528,7 @@ export default function App() {
                   {regStep === 1 && (
                     <div>
                                 <p style={{ fontSize: 12, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" }}>Étape 1 sur 4</p>
-                                <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}> Qui est tu ? ?</h2>
+                                <h2 style={{ fontSize: 26, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.3px" }}> Qui est tu ?</h2>
                                 <p style={{ fontSize: 14, color: T.muted, margin: "0 0 28px" }}>Utilise ton adresse email emlyon.</p>
                                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                                               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
