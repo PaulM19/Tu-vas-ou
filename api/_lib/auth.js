@@ -2,7 +2,11 @@
 // Le dossier _lib n'est pas exposé comme route par Vercel.
 import crypto from "crypto";
 
-const SESSION_DAYS = 30;
+// Après le premier code, l'étudiant reste connecté sur son appareil jusqu'à la fin de l'année
+// académique 2026–2027 (31 juillet 2027). Après cette date, au moins 30 jours (année suivante).
+const SESSION_MIN_DAYS = 30;
+const SESSION_UNTIL = Date.parse("2027-07-31T23:59:59Z");
+const sessionExpiry = () => Math.max(Date.now() + SESSION_MIN_DAYS * 864e5, SESSION_UNTIL);
 
 function secret() {
   // SESSION_SECRET dédié si défini dans Vercel, sinon dérivé de la clé serveur Supabase
@@ -15,7 +19,7 @@ function secret() {
 const b64 = (buf) => Buffer.from(buf).toString("base64url");
 
 export function signSession(email) {
-  const payload = b64(JSON.stringify({ email, exp: Date.now() + SESSION_DAYS * 864e5 }));
+  const payload = b64(JSON.stringify({ email, exp: sessionExpiry() }));
   const sig = b64(crypto.createHmac("sha256", secret()).update(payload).digest());
   return `${payload}.${sig}`;
 }
