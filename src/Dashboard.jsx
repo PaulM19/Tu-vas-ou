@@ -48,7 +48,7 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, Profi
     const showFullName = me.showFullName === true;
     const saveMap = async patch => {
           setMapBusy(true); setMapError("");
-          try { await onMapSettings(patch); } catch { setMapError("Impossible d'enregistrer ton choix. Réessaie."); }
+          try { await onMapSettings(patch); } catch (e) { setMapError(e.message || "Impossible d'enregistrer ton choix. Réessaie."); }
           setMapBusy(false);
     };
     const setVisibility = v => saveMap({ show: v });

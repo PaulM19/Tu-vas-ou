@@ -155,7 +155,7 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
   const toggleFullName = async v => {
     setNameBusy(true); setNameError("");
     try { await onMapSettings({ fullName: v }); setReload(x => x + 1); }
-    catch { setNameError("Impossible d'enregistrer ton choix. Réessaie."); }
+    catch (e) { setNameError(e.message || "Impossible d'enregistrer ton choix. Réessaie."); }
     setNameBusy(false);
   };
   useEffect(() => {

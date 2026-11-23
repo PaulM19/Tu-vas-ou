@@ -644,7 +644,10 @@ export default function App() {
   // Réglages de la carte (apparaître / nom complet), utilisés dans Mon espace et sur la page Carte
   async function saveMapSettings({ show, fullName }) {
         const res = await fetch("/api/map-visibility", { method: "POST", headers: authHeaders(token), body: JSON.stringify({ show, fullName }) });
-        if (!res.ok) throw new Error();
+        if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(`${data.error || "Impossible d'enregistrer ton choix. Réessaie."}${data.code ? ` (code ${data.code})` : ` (erreur ${res.status})`}`);
+        }
         setRegistered(r => ({ ...r, ...(show !== undefined && { showOnMap: show }), ...(fullName !== undefined && { showFullName: fullName }) }));
   }
 

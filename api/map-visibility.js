@@ -23,8 +23,14 @@ export default async function handler(req, res) {
     body: JSON.stringify(patch),
   });
   if (!r.ok) {
-    console.log("map-visibility error:", r.status, await r.text());
-    return res.status(500).json({ error: "Impossible d'enregistrer ton choix. Réessaie." });
+    const text = await r.text();
+    console.log("map-visibility error:", r.status, text);
+    let code = ""; try { code = JSON.parse(text).code || ""; } catch { /* réponse non JSON */ }
+    // Colonne absente ou pas encore prise en compte par Supabase (voir supabase/show-on-map.sql)
+    if (code === "PGRST204" || code === "42703") {
+      return res.status(503).json({ error: "Réglage pas encore activé côté base de données.", code });
+    }
+    return res.status(500).json({ error: "Impossible d'enregistrer ton choix. Réessaie.", code: code || String(r.status) });
   }
   return res.status(200).json({ ok: true });
 }
