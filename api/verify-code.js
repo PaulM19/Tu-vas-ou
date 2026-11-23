@@ -1,4 +1,4 @@
-import { signSession, safeEqual } from "./_lib/auth.js";
+import { signSession, safeEqual, setSessionCookie } from "./_lib/auth.js";
 
 const SUPABASE_URL = "https://fckolgfthpkjmtviysba.supabase.co";
 
@@ -59,5 +59,7 @@ export default async function handler(req, res) {
 
   // Code valide — supprimer
   await sbFetch(`verification_codes?email=eq.${encodeURIComponent(cleanEmail)}`, { method: "DELETE" });
-  return res.status(200).json({ ok: true, verified: true, token: signSession(cleanEmail) });
+  const token = signSession(cleanEmail);
+  setSessionCookie(res, token);
+  return res.status(200).json({ ok: true, verified: true, token });
 }

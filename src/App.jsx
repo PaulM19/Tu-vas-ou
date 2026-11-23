@@ -24,7 +24,8 @@ async function getCityPreview(city, country) {
 const TOKEN_KEY = "tpo_session";
 function loadToken() { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } }
 function saveToken(t) { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch {} }
-const authHeaders = (token) => ({ "Content-Type": "application/json", Authorization: `Bearer ${token}` });
+// Sans jeton, le navigateur envoie quand même le cookie de session posé par le serveur
+const authHeaders = (token) => (token ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` } : { "Content-Type": "application/json" });
 
 async function getMatches(token) {
     const res = await fetch("/api/matches", {
@@ -34,7 +35,9 @@ async function getMatches(token) {
     });
     if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || "Email introuvable. Vérifie ou inscris-toi.");
+          const e = new Error(err.error || "Email introuvable. Vérifie ou inscris-toi.");
+          e.status = res.status;
+          throw e;
     }
     return res.json();
 }
@@ -616,13 +619,17 @@ export default function App() {
     const [error, setError] = useState("");
 
   useEffect(() => {
-        // Reconnexion automatique si un jeton valide est présent sur cet appareil.
+        // Reconnexion automatique : jeton gardé sur l'appareil, ou à défaut cookie de session du serveur.
+        // Le site s'ouvre toujours sur la page d'accueil ; « Mon espace » reste à un clic.
         const saved = loadToken();
-        if (saved) getMatches(saved).then(result => {
-                setToken(saved); setRegistered(result.student); setMatches(result.matches || []);
-                // Déjà connecté : on arrive directement dans son espace (sauf lien direct vers la carte)
-                setScreen(s => (s === "home" ? "matches" : s));
-        }).catch(() => saveToken(null));
+        getMatches(saved).then(result => {
+                const t = result.token || saved;
+                setToken(t); saveToken(t);
+                setRegistered(result.student); setMatches(result.matches || []);
+        }).catch(e => {
+                // On n'oublie la connexion que si le serveur la refuse vraiment (pas sur une panne passagère)
+                if (e.status === 401 || e.status === 404) saveToken(null);
+        });
   }, []);
 
   useEffect(() => {
@@ -722,7 +729,7 @@ export default function App() {
   function go(s) {
         if (s === "register") setRegStep(1);
         if (s === "matches" && !registered) s = "lookup";
-        if (s === "home" && registered) s = "matches";
+        if (s === "lookup" && registered) s = "matches";
         setError(""); setVerifError("");
         setScreen(s);
         window.scrollTo(0, 0);
@@ -751,10 +758,12 @@ export default function App() {
                 Retrouve les étudiants emlyon qui partent au même endroit que toi.
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 20 }}>
-                <button onClick={() => go("register")} style={{ ...btnPrimary(), width: "auto", padding: "14px 28px" }}>Trouver mes matchs</button>
-                <button onClick={() => go(registered ? "matches" : "lookup")} style={{ background: "none", border: "none", padding: 0, fontSize: 15, color: T.text, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 4 }}>
-                  {registered ? "Mon espace" : "J'ai déjà un compte"}
-                </button>
+                <button onClick={() => go(registered ? "matches" : "register")} style={{ ...btnPrimary(), width: "auto", padding: "14px 28px" }}>{registered ? "Aller à mon espace" : "Trouver mes matchs"}</button>
+                {!registered && (
+                  <button onClick={() => go("lookup")} style={{ background: "none", border: "none", padding: 0, fontSize: 15, color: T.text, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 4 }}>
+                    J'ai déjà un compte
+                  </button>
+                )}
               </div>
               <p style={{ fontSize: 14, color: T.faint, margin: "36px 0 0" }}>
                 {stats && typeof stats.total === "number" ? `${stats.total} étudiants inscrits · ${stats.countries} pays` : " "}
@@ -954,7 +963,7 @@ export default function App() {
                          setMatches(data.matches || []);
                        }}
                        shareProps={{ url: SITE_URL, message: destinationMessage(registered.destination, registered.semester), title: "Plus on est d'inscrits, plus tu as de matchs", subtitle: "Envoie le lien dans ton groupe de promo." }}
-                       onLogout={() => { saveToken(null); setToken(null); setRegistered(null); setMatches([]); setScreen("home"); window.scrollTo(0, 0); }}
+                       onLogout={() => { fetch("/api/logout", { method: "POST" }).catch(() => {}); saveToken(null); setToken(null); setRegistered(null); setMatches([]); setScreen("home"); window.scrollTo(0, 0); }}
                        onDelete={async () => {
                          try {
                            const res = await fetch("/api/delete-me", { method: "POST", headers: authHeaders(token), body: "{}" });

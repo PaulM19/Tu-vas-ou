@@ -1,4 +1,4 @@
-import { requireUser } from "./_lib/auth.js";
+import { requireUser, signSession, setSessionCookie } from "./_lib/auth.js";
 import { sbFetch, shapeMe, findMatches } from "./_lib/students.js";
 
 export default async function handler(req, res) {
@@ -17,5 +17,8 @@ export default async function handler(req, res) {
   const me = meRows[0];
   const matches = await findMatches(me);
 
-  return res.status(200).json({ student: shapeMe(me), matches });
+  // On renouvelle la session à chaque visite (jeton + cookie), pour rester connecté sur cet appareil
+  const token = signSession(cleanEmail);
+  setSessionCookie(res, token);
+  return res.status(200).json({ student: shapeMe(me), matches, token });
 }

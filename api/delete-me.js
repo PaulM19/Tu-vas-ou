@@ -1,4 +1,4 @@
-import { requireUser } from "./_lib/auth.js";
+import { requireUser, clearSessionCookie } from "./_lib/auth.js";
 
 const SUPABASE_URL = "https://fckolgfthpkjmtviysba.supabase.co";
 const DOMAIN = "@edu.em-lyon.com";
@@ -32,5 +32,6 @@ if (!ok) {
   return res.status(500).json({ error: "Erreur lors de la suppression." });
 }
 
+clearSessionCookie(res);
 return res.status(200).json({ ok: true });
 }

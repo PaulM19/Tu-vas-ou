@@ -40,10 +40,26 @@ export function verifySession(token) {
   }
 }
 
+// Cookie de session posé par le serveur (HttpOnly : illisible par le JavaScript de la page).
+// Contrairement au stockage du navigateur, Safari ne l'efface pas au bout de 7 jours sans visite.
+const COOKIE = "tpo_session";
+export function setSessionCookie(res, token) {
+  const maxAge = Math.max(0, Math.floor((sessionExpiry() - Date.now()) / 1000));
+  res.setHeader("Set-Cookie", `${COOKIE}=${token}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Lax`);
+}
+export function clearSessionCookie(res) {
+  res.setHeader("Set-Cookie", `${COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`);
+}
+function readCookie(req) {
+  const m = (req.headers.cookie || "").match(new RegExp(`(?:^|;\\s*)${COOKIE}=([^;]+)`));
+  return m ? m[1] : null;
+}
+
 // Renvoie l'email de l'utilisateur connecté, ou répond 401 et renvoie null.
+// Le jeton vient de l'en-tête Authorization, ou à défaut du cookie de session.
 export function requireUser(req, res) {
   const header = req.headers.authorization || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  const token = header.startsWith("Bearer ") ? header.slice(7) : readCookie(req);
   const session = verifySession(token);
   if (!session) {
     res.status(401).json({ error: "Session expirée. Reconnecte-toi avec ton email." });
