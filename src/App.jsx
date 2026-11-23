@@ -253,14 +253,15 @@ const h2Style = { fontFamily: "'Noto Serif', Georgia, serif", fontSize: 30, font
 function Header({ go, registered }) {
     return (
           <header style={{ position: "sticky", top: 0, zIndex: 50, background: "#ffffff", borderBottom: `1px solid ${T.border}` }}>
-            <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 20px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 clamp(16px, 4vw, 20px)", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
               <button onClick={() => go("home")} aria-label="Accueil" style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
                 <span style={{ width: 4, height: 22, background: T.accent, borderRadius: 2 }} />
-                <span style={{ fontFamily: T.serif, fontSize: 19, fontWeight: 600, color: T.text, whiteSpace: "nowrap" }}>Tu pars où ?</span>
+                <span style={{ fontFamily: T.serif, fontSize: "clamp(16px, 4.6vw, 19px)", fontWeight: 600, color: T.text, whiteSpace: "nowrap" }}>Tu pars où ?</span>
               </button>
-              <nav style={{ display: "flex", alignItems: "center", gap: 20 }}>
-                <button onClick={() => go("map")} style={{ background: "none", border: "none", color: T.text, fontSize: 14, cursor: "pointer", padding: 0 }}>Carte</button>
-                <button onClick={() => go(registered ? "matches" : "register")} style={{ background: T.navy, color: "#fff", border: "none", borderRadius: T.radius, padding: "9px 16px", fontSize: 14, fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap" }}>
+              <nav className="tpo-nav" style={{ display: "flex", alignItems: "center" }}>
+                <button className="tpo-hide-xs" onClick={() => go("map")} style={{ background: "none", border: "none", color: T.text, fontSize: 14, cursor: "pointer", padding: 0 }}>Carte</button>
+                {!registered && <button onClick={() => go("lookup")} style={{ background: "none", border: "none", color: T.text, fontSize: 14, cursor: "pointer", padding: 0, whiteSpace: "nowrap" }}>Connexion</button>}
+                <button onClick={() => go(registered ? "matches" : "register")} style={{ background: T.navy, color: "#fff", border: "none", borderRadius: T.radius, padding: "9px clamp(10px, 3vw, 16px)", fontSize: 14, fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap" }}>
                   {registered ? "Mon espace" : "S'inscrire"}
                 </button>
               </nav>

@@ -25,5 +25,9 @@ button:disabled{cursor:not-allowed}
 .tpo-row{display:grid;grid-template-columns:1fr;gap:2px}
 @media(min-width:560px){.tpo-row{grid-template-columns:140px 1fr;gap:16px}}
 
-@media(max-width:480px){input,button,select{font-size:16px!important}}
+/* En-tête : espace entre Carte, Connexion et le bouton (plus serré sur téléphone) */
+.tpo-nav{gap:20px}
+@media(max-width:420px){.tpo-nav{gap:12px}}
+@media(max-width:359px){.tpo-hide-xs{display:none!important}}
+@media(max-width:480px){input,select,textarea{font-size:16px!important}}
 @media(prefers-reduced-motion:reduce){.tpo-fade{animation:none}*{transition:none!important}}
