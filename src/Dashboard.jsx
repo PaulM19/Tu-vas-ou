@@ -34,12 +34,14 @@ function departure(semester, now = new Date()) {
 const read = (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
 const write = (key, v) => { try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* stockage indisponible */ } };
 
-export default function Dashboard({ T, me, matches, StudentCard, ShareBar, shareProps, go, onLogout, onDelete }) {
+export default function Dashboard({ T, me, matches, StudentCard, ShareBar, ProfileForm, shareProps, go, onLogout, onDelete, onSaveProfile }) {
     const [cities, setCities] = useState(null);
     const checksKey = `tpo_checklist_${me.email}`;
     const seenKey = `tpo_seen_${me.email}`;
     const [checks, setChecks] = useState(() => read(checksKey, {}));
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const [editing, setEditing] = useState(false);
+    const [saved, setSaved] = useState(false);
     const [active, setActive] = useState("apercu");
     // Calculé une seule fois à l'ouverture : les matchs absents de la dernière visite sont « nouveaux »
     const [newIds] = useState(() => {
@@ -161,11 +163,22 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, share
 
               {/* ── PROFIL ── */}
               <section id="sec-profil" style={{ ...section, borderBottom: "none", marginBottom: 0, paddingBottom: 0 }}>
-                <h2 style={h2}>Mon profil</h2>
-                <p style={lead}>Ce que tes matchs voient de toi. Ton email n'est jamais affiché.</p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
+                  <h2 style={h2}>Mon profil</h2>
+                  {!editing && <button onClick={() => { setEditing(true); setSaved(false); }} style={textBtn}>Modifier</button>}
+                </div>
+                <p style={lead}>
+                  {editing ? "Modifie tes informations puis enregistre." : "Ce que tes matchs voient de toi. Ton email n'est jamais affiché."}
+                  {saved && !editing && <span style={{ color: T.green }}> Modifications enregistrées.</span>}
+                </p>
+                {editing ? (
+                  <ProfileForm me={me} onCancel={() => setEditing(false)}
+                               onSave={async f => { await onSaveProfile(f); setEditing(false); setSaved(true); }} />
+                ) : (
                 <dl style={{ margin: 0, borderTop: `1px solid ${T.border}` }}>
                   {[
                     ["Nom", `${me.firstName} ${me.lastName}`],
+                    ["Destination", `${dest.school}, ${dest.city} (${dest.country})`],
                     ["Email", me.email],
                     ["WhatsApp", me.whatsapp || "—"],
                     ["Semestre", SEM_FULL[me.semester] || me.semester],
@@ -177,6 +190,7 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, share
                     </div>
                   ))}
                 </dl>
+                )}
 
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 24, marginTop: 32 }}>
                   <button onClick={onLogout} style={textBtn}>Se déconnecter</button>

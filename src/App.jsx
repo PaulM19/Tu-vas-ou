@@ -437,6 +437,80 @@ function StudentCard({ student, isNew = false }) {
         );
 }
 
+// Formulaire de modification du profil (affiché dans « Mon espace »)
+function ProfileForm({ me, onSave, onCancel }) {
+    const d = me.destination;
+    const [f, setF] = useState({
+          firstName: me.firstName, lastName: me.lastName, whatsapp: me.whatsapp || "",
+          semester: me.semester || "fall", lookingFor: me.lookingFor || [],
+          destQuery: `${d.school} – ${d.city}`, destination: d,
+    });
+    const [saving, setSaving] = useState(false);
+    const [err, setErr] = useState("");
+    const set = patch => setF(x => ({ ...x, ...patch }));
+    const label = { display: "block", fontSize: 14, fontWeight: 500, color: T.text, margin: "0 0 8px" };
+
+    async function save() {
+          setErr("");
+          if (!f.firstName.trim() || !f.lastName.trim()) return setErr("Entre ton prénom et ton nom.");
+          if (!f.whatsapp.trim()) return setErr("Entre ton numéro WhatsApp.");
+          if (!f.destination) return setErr("Choisis ta destination dans la liste.");
+          setSaving(true);
+          try { await onSave(f); }
+          catch (e) { setErr(e.message || "Impossible d'enregistrer. Réessaie."); setSaving(false); }
+    }
+
+    return (
+          <div style={{ display: "flex", flexDirection: "column", gap: 24, paddingTop: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div><label style={label}>Prénom</label><input value={f.firstName} onChange={e => set({ firstName: e.target.value })} style={inputStyle} /></div>
+              <div><label style={label}>Nom</label><input value={f.lastName} onChange={e => set({ lastName: e.target.value })} style={inputStyle} /></div>
+            </div>
+            <div>
+              <label style={label}>Email</label>
+              <p style={{ margin: 0, fontSize: 15, color: T.muted }}>{me.email} <span style={{ color: T.faint, fontSize: 13 }}>· ne peut pas être modifié</span></p>
+            </div>
+            <div>
+              <label style={label}>WhatsApp</label>
+              <input value={f.whatsapp} inputMode="tel" placeholder="+33 6 12 34 56 78" onChange={e => set({ whatsapp: e.target.value })} style={inputStyle} />
+              <p style={{ margin: "6px 0 0", fontSize: 13, color: T.faint }}>Avec l'indicatif si ton numéro n'est pas français.</p>
+            </div>
+            <div>
+              <label style={label}>Destination</label>
+              <DestSearch value={f.destQuery} onChange={v => set({ destQuery: v, destination: null })} onSelect={x => set({ destQuery: `${x.school} – ${x.city}`, destination: x })} />
+              {f.destination && f.destination.school !== d.school && (
+                <p style={{ margin: "6px 0 0", fontSize: 13, color: T.muted }}>Tes matchs seront mis à jour pour cette nouvelle école.</p>
+              )}
+            </div>
+            <div>
+              <label style={label}>Semestre</label>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8 }}>
+                {SEMESTER_OPTIONS.map(o => <SemCard key={o.val} {...o} active={f.semester === o.val} onClick={() => set({ semester: o.val })} />)}
+              </div>
+            </div>
+            <div>
+              <label style={label}>Je cherche <span style={{ fontWeight: 400, color: T.faint }}>(facultatif)</span></label>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {LOOKING_OPTIONS.map(([val, text]) => {
+                  const on = f.lookingFor.includes(val);
+                  return (
+                    <button key={val} aria-pressed={on} onClick={() => set({ lookingFor: on ? f.lookingFor.filter(x => x !== val) : [...f.lookingFor, val] })}
+                            style={{ padding: "8px 16px", fontSize: 14, borderRadius: 99, background: on ? T.navy : T.bgCard, color: on ? "#fff" : T.text, border: `1px solid ${on ? T.navy : T.borderStrong}`, cursor: "pointer" }}>
+                      {text}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {err && <p style={{ margin: 0, fontSize: 14, color: T.red }}>{err}</p>}
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button onClick={save} disabled={saving} style={{ ...btnPrimary(!saving), width: "auto", padding: "12px 24px" }}>{saving ? "Enregistrement…" : "Enregistrer"}</button>
+              <button onClick={onCancel} disabled={saving} style={{ ...btnSecondary, width: "auto", padding: "12px 24px" }}>Annuler</button>
+            </div>
+          </div>
+        );
+}
+
 export default function App() {
     const [screen, setScreen] = useState(() => (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("carte") ? "map" : "home"));
     const [regStep, setRegStep] = useState(1);
@@ -769,7 +843,15 @@ export default function App() {
     if (screen === "matches" && registered) return (
           <Page go={go} registered={registered} width={1040}>
             <Dashboard T={T} me={registered} matches={matches} go={go}
-                       StudentCard={StudentCard} ShareBar={ShareBar}
+                       StudentCard={StudentCard} ShareBar={ShareBar} ProfileForm={ProfileForm}
+                       onSaveProfile={async f => {
+                         const res = await fetch("/api/update-profile", { method: "POST", headers: authHeaders(token),
+                           body: JSON.stringify({ firstName: f.firstName, lastName: f.lastName, whatsapp: f.whatsapp, semester: f.semester, lookingFor: f.lookingFor, destination: f.destination }) });
+                         const data = await res.json().catch(() => ({}));
+                         if (!res.ok) throw new Error(data.error || "Impossible d'enregistrer. Réessaie.");
+                         setRegistered(data.student);
+                         setMatches(data.matches || []);
+                       }}
                        shareProps={{ url: SITE_URL, message: destinationMessage(registered.destination, registered.semester), title: "Plus on est d'inscrits, plus tu as de matchs", subtitle: "Envoie le lien dans ton groupe de promo." }}
                        onLogout={() => { saveToken(null); setToken(null); setRegistered(null); setMatches([]); setScreen("home"); window.scrollTo(0, 0); }}
                        onDelete={async () => {
