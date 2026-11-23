@@ -7,8 +7,9 @@ import { ShareBar, SITE_URL, MAP_MESSAGE } from "./share";
 // (28 villes sur 58 au 14/10/2026). L'étudiant connecté voit toujours sa propre destination.
 const MIN_SHOW = 1;
 
-const RED = "#dc2626";
-const MINE = "#2563eb"; // couleur de "ta destination"
+const RED = "#E2001A"; // rouge emlyon
+const MINE = "#001931"; // bleu marine emlyon : couleur de "ta destination"
+const LAND = "#e4dfd7";
 
 // Cadrages de la carte : x, y, largeur, hauteur (dans le repère de mapData)
 const VIEWS = {
@@ -185,17 +186,20 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
   const card = { background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, boxShadow: T.shadow };
   const pill = active => ({
     padding: "6px 12px", fontSize: 13, borderRadius: 999, cursor: "pointer",
-    border: `1px solid ${active ? T.text : T.border}`,
-    background: active ? T.text : T.bgCard, color: active ? T.bgCard : T.text,
+    border: `1px solid ${active ? T.navy || T.text : T.border}`,
+    background: active ? T.navy || T.text : T.bgCard, color: active ? "#fff" : T.text,
     fontWeight: active ? 600 : 400,
   });
 
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, padding: "2rem 1rem", display: "flex", justifyContent: "center" }}>
-      <div style={{ width: "100%", maxWidth: 760 }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, fontSize: 13, padding: "0 0 24px", display: "flex", alignItems: "center", gap: 4 }}>{backLabel}</button>
+    <div>
+      <div>
+        <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: 99, padding: "7px 14px", fontSize: 13, fontWeight: 500, color: T.text, cursor: "pointer", boxShadow: T.shadow, marginBottom: 24 }}>
+          <i className="ti ti-arrow-left" /> {backLabel.replace(/^←\s*/, "")}
+        </button>
 
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: T.text, margin: "0 0 8px", letterSpacing: "-0.5px" }}>Où part la promo ?</h1>
+        <p style={{ fontSize: 12, fontWeight: 600, color: RED, textTransform: "uppercase", letterSpacing: "0.12em", margin: "0 0 10px" }}>Promo 2026–2027</p>
+        <h1 style={{ fontFamily: T.serif || "inherit", fontSize: 34, fontWeight: 700, color: T.text, margin: "0 0 8px", letterSpacing: "-0.5px" }}>Où part la promo ?</h1>
         <p style={{ fontSize: 14, color: T.muted, margin: "0 0 20px", lineHeight: 1.6 }}>
           Chaque point rouge est une ville d'échange. Plus il est gros, plus il y a d'étudiants. Aucun nom n'est affiché.
         </p>
@@ -225,7 +229,7 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
                    onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
                    onDoubleClick={e => { const [mx, my] = toMap(e.clientX, e.clientY); zoomAt(e.shiftKey ? 2 : 0.5, mx, my); }}
                    onClick={() => { if (!dragged.current) setSelected(null); }}>
-                <path d={LAND_PATH} fill="#e7e5e0" stroke="#ffffff" strokeWidth={0.6 * k} />
+                <path d={LAND_PATH} fill={LAND} stroke="#ffffff" strokeWidth={0.6 * k} />
                 {[...cities].reverse().sort((a, b) => isMine(a) - isMine(b)).map(c => {
                   const [x, y] = CITY_POS[c.city];
                   const r = radius(c.n);
@@ -330,16 +334,32 @@ export function MapPreview({ T, onOpen }) {
       .catch(() => setCities([]));
   }, []);
   const max = Math.max(1, ...(cities || []).map(c => c.count));
+  // La ville la plus demandée, mise en avant dans une bulle (comme une étiquette sur la carte)
+  const top = (cities || []).slice().sort((a, b) => b.count - a.count)[0];
+  const [tx, ty] = top ? CITY_POS[top.city] : [0, 0];
+  const VB_Y = 20, VB_H = MAP_H - 60;
   return (
     <button onClick={onOpen} aria-label="Voir la carte des départs"
-            style={{ width: "100%", padding: 0, textAlign: "left", cursor: "pointer", background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, boxShadow: T.shadow, overflow: "hidden", display: "block" }}>
-      <svg viewBox={`0 20 ${MAP_W} ${MAP_H - 60}`} style={{ width: "100%", height: "auto", display: "block", background: "#fbfaf8" }} aria-hidden="true">
-        <path d={LAND_PATH} fill="#e7e5e0" stroke="#ffffff" strokeWidth={0.6} />
+            style={{ width: "100%", padding: 0, textAlign: "left", cursor: "pointer", background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: 20, boxShadow: T.shadowMd, overflow: "hidden", display: "block" }}>
+      <span style={{ position: "relative", display: "block" }}>
+      <svg viewBox={`0 ${VB_Y} ${MAP_W} ${VB_H}`} style={{ width: "100%", height: "auto", display: "block", background: "linear-gradient(180deg, #fbfaf8, #f3efe9)" }} aria-hidden="true">
+        <path d={LAND_PATH} fill={LAND} stroke="#ffffff" strokeWidth={0.6} />
         {(cities || []).map(c => {
           const [x, y] = CITY_POS[c.city];
           return <circle key={c.country + c.city} cx={x} cy={y} r={4 + 9 * Math.sqrt(c.count / max)} fill={RED} fillOpacity={0.7} stroke="#fff" strokeWidth={1} />;
         })}
+        {top && <circle cx={tx} cy={ty} r={4 + 9 + 6} fill="none" stroke={RED} strokeWidth={2} strokeOpacity={0.5} />}
       </svg>
+      {top && (
+        <span style={{ position: "absolute", ...(tx / MAP_W > 0.55 ? { right: `${Math.max(2, 100 - (tx / MAP_W) * 100 + 3)}%` } : { left: `${Math.max(2, (tx / MAP_W) * 100 + 3)}%` }), top: `${Math.min(80, Math.max(4, ((ty - VB_Y) / VB_H) * 100 - 22))}%`, display: "flex", alignItems: "center", gap: 8, background: MINE, color: "#fff", borderRadius: 12, padding: "7px 12px 7px 8px", boxShadow: "0 8px 20px rgba(0,25,49,0.25)", pointerEvents: "none", whiteSpace: "nowrap" }}>
+          <span style={{ width: 26, height: 26, borderRadius: 7, background: RED, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}><i className="ti ti-flame" /></span>
+          <span style={{ lineHeight: 1.2 }}>
+            <span style={{ display: "block", fontSize: 13, fontWeight: 600 }}>{top.city}</span>
+            <span style={{ display: "block", fontSize: 11, color: "rgba(255,255,255,0.7)" }}>{top.count} étudiant{top.count > 1 ? "s" : ""} · n°1</span>
+          </span>
+        </span>
+      )}
+      </span>
       <span style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", borderTop: `1px solid ${T.border}` }}>
         <span>
           <span style={{ display: "block", fontSize: 14, fontWeight: 600, color: T.text }}>Où part la promo ?</span>
@@ -347,7 +367,7 @@ export function MapPreview({ T, onOpen }) {
             {cities ? `${cities.length} villes sur la carte` : "Chargement…"}
           </span>
         </span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>Voir la carte →</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: T.accent }}>Voir la carte →</span>
       </span>
     </button>
   );

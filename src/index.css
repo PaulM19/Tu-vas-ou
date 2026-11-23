@@ -1,7 +1,17 @@
+/* Charte inspirée d'emlyon : rouge #E2001A, bleu marine #001931, or #D4A94E, Poppins + Noto Serif */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;background:#fafaf9;color:#111110;min-height:100vh;-webkit-font-smoothing:antialiased}
+body{font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#f6f4f1;color:#001931;min-height:100vh;-webkit-font-smoothing:antialiased}
 #root{min-height:100vh}
 input,button,select,textarea{font-family:inherit}
-input:focus{outline:none;border-color:#111110!important;box-shadow:0 0 0 3px rgba(17,17,16,0.06)}
+input:focus{outline:none;border-color:#001931!important;box-shadow:0 0 0 3px rgba(226,0,26,0.12)}
+button:focus-visible,a:focus-visible{outline:2px solid #E2001A;outline-offset:2px}
 button:active{transform:scale(0.98)}
-@media(max-width:480px){input,button,select{font-size:16px!important}}
+button:disabled{cursor:not-allowed}
+::selection{background:rgba(226,0,26,0.15)}
+@keyframes tpo-fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes tpo-pulse{0%{transform:scale(1);opacity:.55}100%{transform:scale(2.6);opacity:0}}
+.tpo-fade{animation:tpo-fade .35s ease both}
+.tpo-hero{display:grid;grid-template-columns:1fr;gap:28px;align-items:center}
+@media(min-width:900px){.tpo-hero{grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:56px}}
+@media(max-width:480px){input,button,select{font-size:16px!important}.tpo-hide-sm{display:none!important}}
+@media(prefers-reduced-motion:reduce){.tpo-fade{animation:none}*{transition:none!important}}
