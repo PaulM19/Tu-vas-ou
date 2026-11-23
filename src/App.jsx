@@ -489,9 +489,25 @@ export default function App() {
                 const data = await res.json();
                 if (!res.ok) { setVerifError(data.error); setLoading(false); return; }
                 setToken(data.token); saveToken(data.token);
+                // Déjà inscrit ? Le code prouve que l'adresse lui appartient : on le connecte
+                // directement à son espace au lieu de lui refaire remplir l'inscription.
+                if (await openExistingAccount(data.token)) { setLoading(false); return; }
                 setRegStep(3);
         } catch { setVerifError("Erreur réseau. Réessaie."); }
         setLoading(false);
+  }
+
+  // Charge le compte lié au jeton et ouvre « Mon espace ». Renvoie false s'il n'existe pas encore.
+  async function openExistingAccount(t) {
+        try {
+                const result = await getMatches(t);
+                setRegistered(result.student);
+                setMatches(result.matches || []);
+                setRegStep(1); setVerifCode(""); setError(""); setVerifError("");
+                setScreen("matches");
+                window.scrollTo(0, 0);
+                return true;
+        } catch { return false; }
   }
 
   async function handleSubmit() {
@@ -505,6 +521,8 @@ export default function App() {
                 }
                 setScreen("matches");
         } catch (e) {
+                // Filet de sécurité : si le compte existe déjà, on ouvre simplement son espace.
+                if (token && await openExistingAccount(token)) { setLoading(false); return; }
                 setError(e.message || "Une erreur est survenue.");
         }
         setLoading(false);
@@ -611,7 +629,7 @@ export default function App() {
                 <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", margin: "8px 0" }}>
                   <input type="checkbox" checked={form.consent} onChange={e => setForm(f => ({ ...f, consent: e.target.checked }))} style={{ marginTop: 3, width: 16, height: 16, flexShrink: 0, cursor: "pointer", accentColor: T.navy }} />
                   <span style={{ fontSize: 13, color: T.muted, lineHeight: 1.6 }}>
-                    J'accepte que mes informations soient partagées uniquement avec les étudiants emlyon qui partent au même endroit.{" "}
+                    J'accepte que mes informations soient partagées avec les étudiants emlyon qui partent au même endroit, et utilisées par l'équipe pour me recommander les bons plans de ma ville.{" "}
                     <span onClick={e => { e.preventDefault(); go("privacy"); }} style={{ color: T.text, textDecoration: "underline", cursor: "pointer" }}>En savoir plus</span>
                   </span>
                 </label>
@@ -780,15 +798,16 @@ if (screen === "map") {
           <Page go={go} registered={registered} width={620}>
                         <button onClick={() => go(registered ? "matches" : "home")} style={{ ...pillBack, marginBottom: 40 }}>← Retour</button>
                         <h1 style={{ ...h2Style, fontSize: 34 }}>Politique de confidentialité</h1>
-                        <p style={{ fontSize: 14, color: T.faint, margin: "0 0 48px" }}>Dernière mise à jour : juillet 2026</p>
+                        <p style={{ fontSize: 14, color: T.faint, margin: "0 0 48px" }}>Dernière mise à jour : novembre 2026</p>
                   {[
-            { title: "Qui sommes-nous ?", content: "Tu pars où en échange ? est une application étudiante créée par des étudiants emlyon pour les étudiants emlyon partant en échange académique. Ce projet n'est pas affilié officiellement à emlyon business school." },
-            { title: "Quelles données collectons-nous ?", content: "Lors de ton inscription, nous collectons : ton prénom et nom, ton adresse email @edu.em-lyon.com, ta destination d'échange (école, ville, pays), ton semestre, et ton numéro WhatsApp." },
-            { title: "Pourquoi collectons-nous ces données ?", content: "Uniquement pour te mettre en relation avec d'autres étudiants emlyon partant à la même destination. Aucune donnée n'est utilisée à des fins commerciales ou transmise à des tiers." },
-            { title: "Qui peut voir mes données ?", content: "Seuls les étudiants emlyon inscrits sur la plateforme partant à la même destination que toi peuvent voir ton nom et ton numéro WhatsApp. Ton email n'est jamais affiché publiquement." },
+            { title: "Qui sommes-nous ?", content: "Tu pars où en échange ? est une application créée par des étudiants emlyon pour les étudiants emlyon qui partent en échange académique. Ce projet n'est pas affilié officiellement à emlyon business school." },
+            { title: "Quelles données collectons-nous ?", content: "Lors de ton inscription, nous collectons : ton prénom et ton nom, ton adresse email @edu.em-lyon.com, ta destination d'échange (école, ville, pays), ton semestre, ce que tu recherches (coloc, amis…) et ton numéro WhatsApp." },
+            { title: "Pourquoi collectons-nous ces données ?", content: "Pour deux raisons. D'abord, te mettre en relation avec les autres étudiants emlyon qui partent au même endroit que toi. Ensuite, t'aider à t'installer dans ta ville : notre équipe s'appuie sur l'expérience des anciens étudiants partis aux mêmes endroits pour repérer les meilleurs bons plans de chaque ville (logement, transports, démarches, vie sur place). Ta destination, ton semestre, ce que tu recherches et tes coordonnées peuvent être utilisés pour te recommander ces bons plans." },
+            { title: "Qui peut voir mes données ?", content: "Les étudiants emlyon inscrits qui partent dans la même école que toi voient ton nom, ton semestre, ce que tu recherches et ton numéro WhatsApp. L'équipe du projet y a accès pour t'envoyer des recommandations adaptées à ta destination. Ton email n'est jamais affiché aux autres étudiants. Tes données ne sont ni vendues ni transmises à des tiers." },
+            { title: "Ne plus recevoir de bons plans", content: "Tu peux à tout moment demander à ne plus recevoir de recommandations en écrivant à monzatpaul@gmail.com. Tu restes inscrit et tu gardes l'accès à tes matchs." },
             { title: "Combien de temps garde-t-on tes données ?", content: "Tes données sont conservées jusqu'à la fin de l'année académique 2026-2027, ou jusqu'à ce que tu demandes leur suppression." },
-            { title: "Tes droits (RGPD)", content: "Tu as le droit d'accéder à tes données, de les corriger, et de les supprimer à tout moment via le bouton 'Supprimer mon inscription' sur ta page de matchs. Pour toute question, contacte : monzatpaul@gmail.com" },
-            { title: "Sécurité", content: "Les données sont stockées sur Supabase (infrastructure sécurisée basée en Europe). Ton numéro WhatsApp n'est visible que par les étudiants qui partagent ta destination." },
+            { title: "Tes droits (RGPD)", content: "Tu as le droit d'accéder à tes données, de les corriger, de t'opposer à leur utilisation pour les recommandations et de les supprimer à tout moment, via « Supprimer mon inscription » dans ton espace. Pour toute question, contacte monzatpaul@gmail.com." },
+            { title: "Sécurité", content: "Les données sont stockées sur Supabase, une infrastructure sécurisée hébergée en Europe. Ton numéro WhatsApp n'est visible que par les étudiants qui partent dans la même école que toi et par l'équipe du projet." },
                     ].map(({ title, content }) => (
                                 <div key={title} style={{ marginBottom: 32 }}>
                                             <h2 style={{ fontSize: 16, fontWeight: 600, color: T.text, margin: "0 0 6px" }}>{title}</h2>
