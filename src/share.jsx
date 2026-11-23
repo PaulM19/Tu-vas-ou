@@ -43,19 +43,18 @@ export function ShareBar({ T, message, url, title, subtitle }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const btn = { flex: 1, minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: T.radius, fontSize: 14, fontWeight: 600, cursor: "pointer", textDecoration: "none" };
+  const btn = { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "10px 16px", borderRadius: T.radius, fontSize: 14, fontWeight: 500, cursor: "pointer", textDecoration: "none", background: T.bgCard, color: T.text, border: `1px solid ${T.borderStrong}` };
 
   return (
-    <div style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, padding: 16, boxShadow: T.shadow }}>
-      {title && <p style={{ margin: "0 0 2px", fontSize: 15, fontWeight: 700, color: T.text }}>{title}</p>}
-      {subtitle && <p style={{ margin: "0 0 12px", fontSize: 13, color: T.muted, lineHeight: 1.5 }}>{subtitle}</p>}
-      <div style={{ display: "flex", gap: 8 }}>
-        <a href={`https://wa.me/?text=${encodeURIComponent(message)}`} target="_blank" rel="noopener noreferrer"
-           style={{ ...btn, background: WA_GREEN, color: "#fff", border: "none" }}>
-          <WhatsAppIcon /> WhatsApp
+    <div>
+      {title && <p style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 500, color: T.text }}>{title}</p>}
+      {subtitle && <p style={{ margin: "0 0 14px", fontSize: 14, color: T.muted, lineHeight: 1.6 }}>{subtitle}</p>}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <a href={`https://wa.me/?text=${encodeURIComponent(message)}`} target="_blank" rel="noopener noreferrer" style={btn}>
+          <span style={{ color: WA_GREEN, display: "flex" }}><WhatsAppIcon size={16} /></span> Partager sur WhatsApp
         </a>
-        <button onClick={copy} style={{ ...btn, background: "transparent", color: T.text, border: `1px solid ${T.border}`, fontWeight: 500 }}>
-          {copied ? "Lien copié ✓" : "Copier le lien"}
+        <button onClick={copy} style={btn}>
+          {copied ? "Lien copié" : "Copier le lien"}
         </button>
       </div>
     </div>

@@ -1,17 +1,29 @@
 /* Charte inspirée d'emlyon : rouge #E2001A, bleu marine #001931, or #D4A94E, Poppins + Noto Serif */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#f6f4f1;color:#001931;min-height:100vh;-webkit-font-smoothing:antialiased}
+body{font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#fff;color:#001931;min-height:100vh;-webkit-font-smoothing:antialiased;line-height:1.5}
 #root{min-height:100vh}
 input,button,select,textarea{font-family:inherit}
-input:focus{outline:none;border-color:#001931!important;box-shadow:0 0 0 3px rgba(226,0,26,0.12)}
-button:focus-visible,a:focus-visible{outline:2px solid #E2001A;outline-offset:2px}
-button:active{transform:scale(0.98)}
+input::placeholder{color:#9aa1ab}
+input:focus{outline:none;border-color:#001931!important;box-shadow:0 0 0 3px rgba(0,25,49,0.08)}
+button:focus-visible,a:focus-visible{outline:2px solid #001931;outline-offset:2px}
 button:disabled{cursor:not-allowed}
-::selection{background:rgba(226,0,26,0.15)}
-@keyframes tpo-fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-@keyframes tpo-pulse{0%{transform:scale(1);opacity:.55}100%{transform:scale(2.6);opacity:0}}
-.tpo-fade{animation:tpo-fade .35s ease both}
-.tpo-hero{display:grid;grid-template-columns:1fr;gap:28px;align-items:center}
-@media(min-width:900px){.tpo-hero{grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:56px}}
-@media(max-width:480px){input,button,select{font-size:16px!important}.tpo-hide-sm{display:none!important}}
+::selection{background:rgba(226,0,26,0.12)}
+@keyframes tpo-fade{from{opacity:0}to{opacity:1}}
+.tpo-fade{animation:tpo-fade .25s ease both}
+
+/* Accueil : une colonne sur mobile, deux sur ordinateur */
+.tpo-hero{display:grid;grid-template-columns:1fr;gap:48px;align-items:center}
+@media(min-width:900px){.tpo-hero{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:72px}}
+
+/* Mon espace : menu en haut sur mobile, colonne à gauche sur ordinateur */
+.tpo-dash{display:grid;grid-template-columns:1fr;gap:32px}
+.tpo-dash-nav{position:sticky;top:64px;z-index:20;display:flex;gap:4px;overflow-x:auto;margin:-24px -20px 0;padding:10px 20px;background:#fff;border-bottom:1px solid #e7e5e1;scrollbar-width:none}
+.tpo-dash-nav::-webkit-scrollbar{display:none}
+@media(min-width:900px){.tpo-dash{grid-template-columns:180px minmax(0,1fr);gap:64px;align-items:start}.tpo-dash-nav{top:120px;flex-direction:column;margin:0;padding:0;border:none;overflow:visible}}
+
+/* Lignes « libellé / valeur » du profil */
+.tpo-row{display:grid;grid-template-columns:1fr;gap:2px}
+@media(min-width:560px){.tpo-row{grid-template-columns:140px 1fr;gap:16px}}
+
+@media(max-width:480px){input,button,select{font-size:16px!important}}
 @media(prefers-reduced-motion:reduce){.tpo-fade{animation:none}*{transition:none!important}}

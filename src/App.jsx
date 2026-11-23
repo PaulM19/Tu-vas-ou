@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import WorldMap, { MapPreview } from "./WorldMap";
 import { ShareBar, SITE_URL, destinationMessage } from "./share";
+import Dashboard from "./Dashboard";
 const DOMAIN = "@edu.em-lyon.com";
 
 async function getStats() {
@@ -215,51 +216,45 @@ const COUNTRY_CODES = [
 
 const SEMESTER_LABELS = { fall: "Fall", spring: "Spring", double: "Double diplôme" };
 
-// Charte graphique inspirée d'emlyon business school
+// Charte graphique inspirée d'emlyon business school : sobre, beaucoup d'espace, peu d'effets
 const T = {
-    bg: "#f6f4f1", bgCard: "#ffffff", bgHover: "#f1eeea",
-    border: "rgba(0,25,49,0.10)", borderStrong: "rgba(0,25,49,0.22)",
-    text: "#001931", muted: "#56606e", faint: "#98a0ab",
-    accent: "#E2001A", accentHover: "#c00016", accentFg: "#ffffff", accentSoft: "#fdecee",
-    navy: "#001931", navySoft: "#e8ecf1", gold: "#D4A94E",
-    green: "#15803d", greenBg: "#eefaf2",
-    red: "#c00016", radius: "10px", radiusLg: "16px",
-    shadow: "0 1px 2px rgba(0,25,49,0.06), 0 1px 3px rgba(0,25,49,0.05)",
-    shadowMd: "0 10px 30px rgba(0,25,49,0.10)",
+    bg: "#ffffff", bgCard: "#ffffff", bgHover: "#f5f4f2", bgSoft: "#f8f7f5",
+    border: "#e7e5e1", borderStrong: "#cfccc6",
+    text: "#001931", muted: "#5d6673", faint: "#9aa1ab",
+    accent: "#E2001A", accentHover: "#c00016", accentFg: "#ffffff", accentSoft: "#fdf0f1",
+    navy: "#001931", navySoft: "#eef1f4", gold: "#D4A94E",
+    green: "#15803d", greenBg: "#f1f8f3",
+    red: "#c00016", radius: "8px", radiusLg: "12px",
+    shadow: "none",
+    shadowMd: "0 8px 24px rgba(0,25,49,0.08)",
     serif: "'Noto Serif', Georgia, serif",
 };
 
 // Boutons et titres réutilisés partout
 const btnPrimary = (enabled = true) => ({
-    padding: "14px", background: enabled ? T.accent : T.border, color: enabled ? T.accentFg : T.faint,
-    border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 600, width: "100%",
-    cursor: enabled ? "pointer" : "not-allowed", transition: "background 0.15s, box-shadow 0.15s",
-    boxShadow: enabled ? "0 6px 16px rgba(226,0,26,0.22)" : "none",
+    padding: "14px", background: enabled ? T.accent : T.bgHover, color: enabled ? T.accentFg : T.faint,
+    border: "none", borderRadius: T.radius, fontSize: 15, fontWeight: 500, width: "100%",
+    cursor: enabled ? "pointer" : "not-allowed", transition: "background 0.15s",
 });
-const btnSecondary = { padding: "13px", background: T.bgCard, color: T.text, border: `1px solid ${T.borderStrong}`, borderRadius: T.radius, fontSize: 14, fontWeight: 500, cursor: "pointer", width: "100%" };
-const btnGhost = { padding: "10px", background: "transparent", color: T.muted, border: `1px solid ${T.border}`, borderRadius: T.radius, fontSize: 13, cursor: "pointer", width: "100%" };
-const pillBack = { display: "inline-flex", alignItems: "center", gap: 6, background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: 99, padding: "7px 14px", fontSize: 13, fontWeight: 500, color: T.text, cursor: "pointer", boxShadow: T.shadow };
-const eyebrow = { fontSize: 12, fontWeight: 600, color: T.accent, textTransform: "uppercase", letterSpacing: "0.12em", margin: "0 0 10px" };
-const h2Style = { fontSize: 30, fontWeight: 700, color: T.text, margin: "0 0 8px", letterSpacing: "-0.6px", lineHeight: 1.15 };
+const btnSecondary = { padding: "13px", background: T.bgCard, color: T.text, border: `1px solid ${T.borderStrong}`, borderRadius: T.radius, fontSize: 15, fontWeight: 500, cursor: "pointer", width: "100%" };
+const btnGhost = { padding: "10px", background: "transparent", color: T.muted, border: "none", borderRadius: T.radius, fontSize: 14, cursor: "pointer", width: "100%", textDecoration: "underline", textUnderlineOffset: 3 };
+const pillBack = { display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "none", padding: "4px 0", fontSize: 14, color: T.muted, cursor: "pointer" };
+const eyebrow = { fontSize: 14, fontWeight: 400, color: T.muted, margin: "0 0 8px" };
+const h2Style = { fontFamily: "'Noto Serif', Georgia, serif", fontSize: 30, fontWeight: 600, color: T.text, margin: "0 0 10px", letterSpacing: "-0.4px", lineHeight: 1.2 };
 
-// En-tête commun : logo du site + raccourcis
+// En-tête commun
 function Header({ go, registered }) {
     return (
-          <header style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(246,244,241,0.88)", backdropFilter: "saturate(1.4) blur(10px)", WebkitBackdropFilter: "saturate(1.4) blur(10px)", borderBottom: `1px solid ${T.border}` }}>
-            <div style={{ maxWidth: 1080, margin: "0 auto", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <header style={{ position: "sticky", top: 0, zIndex: 50, background: "#ffffff", borderBottom: `1px solid ${T.border}` }}>
+            <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 20px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <button onClick={() => go("home")} aria-label="Accueil" style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-                <span style={{ width: 34, height: 34, borderRadius: 9, background: T.accent, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19 }}><i className="ti ti-plane-departure" /></span>
-                <span style={{ textAlign: "left", lineHeight: 1.1 }}>
-                  <span style={{ display: "block", fontFamily: T.serif, fontSize: 17, fontWeight: 700, color: T.text, whiteSpace: "nowrap" }}>Tu pars où ?</span>
-                  <span className="tpo-hide-sm" style={{ display: "block", fontSize: 11, color: T.muted }}>Échanges emlyon 2026–2027</span>
-                </span>
+                <span style={{ width: 4, height: 22, background: T.accent, borderRadius: 2 }} />
+                <span style={{ fontFamily: T.serif, fontSize: 19, fontWeight: 600, color: T.text, whiteSpace: "nowrap" }}>Tu pars où ?</span>
               </button>
-              <nav style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <button onClick={() => go("map")} aria-label="Carte des départs" style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: T.text, fontSize: 14, fontWeight: 500, cursor: "pointer", padding: "8px 10px", borderRadius: 8 }}>
-                  <i className="ti ti-world" style={{ fontSize: 18, color: T.accent }} /><span className="tpo-hide-sm">Carte</span>
-                </button>
-                <button onClick={() => go(registered ? "matches" : "register")} style={{ background: T.navy, color: "#fff", border: "none", borderRadius: 99, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
-                  {registered ? "Mes matchs" : "S'inscrire"}
+              <nav style={{ display: "flex", alignItems: "center", gap: 20 }}>
+                <button onClick={() => go("map")} style={{ background: "none", border: "none", color: T.text, fontSize: 14, cursor: "pointer", padding: 0 }}>Carte</button>
+                <button onClick={() => go(registered ? "matches" : "register")} style={{ background: T.navy, color: "#fff", border: "none", borderRadius: T.radius, padding: "9px 16px", fontSize: 14, fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap" }}>
+                  {registered ? "Mon espace" : "S'inscrire"}
                 </button>
               </nav>
             </div>
@@ -267,22 +262,17 @@ function Header({ go, registered }) {
         );
 }
 
-// Pied de page commun, avec le filet rouge → or
+// Pied de page commun
 function Footer({ go }) {
-    const link = { background: "none", border: "none", padding: 0, color: T.text, fontSize: 13, fontWeight: 500, cursor: "pointer" };
+    const link = { background: "none", border: "none", padding: 0, color: T.muted, fontSize: 13, cursor: "pointer" };
     return (
-          <footer style={{ marginTop: "auto" }}>
-            <div style={{ height: 3, background: `linear-gradient(90deg, ${T.accent}, ${T.gold})` }} />
-            <div style={{ background: T.bgCard }}>
-              <div style={{ maxWidth: 1080, margin: "0 auto", padding: "20px 16px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 18 }}>
-                  <button style={link} onClick={() => go("map")}>Où part la promo</button>
-                  <button style={link} onClick={() => go("lookup")}>Retrouver mes matchs</button>
-                  <button style={link} onClick={() => go("privacy")}>Confidentialité</button>
-                </div>
-                <p style={{ fontSize: 12, color: T.muted }}>
-                  Projet étudiant, non affilié officiellement à emlyon · {PARTNER_SCHOOLS} universités partenaires dans {PARTNER_COUNTRIES} pays
-                </p>
+          <footer style={{ marginTop: "auto", borderTop: `1px solid ${T.border}` }}>
+            <div style={{ maxWidth: 1080, margin: "0 auto", padding: "24px 20px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <p style={{ fontSize: 13, color: T.faint }}>Projet étudiant, non affilié à emlyon business school</p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
+                <button style={link} onClick={() => go("map")}>Carte</button>
+                <button style={link} onClick={() => go("matches")}>Mon espace</button>
+                <button style={link} onClick={() => go("privacy")}>Confidentialité</button>
               </div>
             </div>
           </footer>
@@ -290,11 +280,11 @@ function Footer({ go }) {
 }
 
 // Mise en page de chaque écran : en-tête, contenu centré, pied de page
-function Page({ go, registered, width = 460, center = false, children }) {
+function Page({ go, registered, width = 440, center = false, children }) {
     return (
           <div style={{ minHeight: "100vh", background: T.bg, display: "flex", flexDirection: "column" }}>
             <Header go={go} registered={registered} />
-            <main style={{ flex: 1, display: "flex", alignItems: center ? "center" : "flex-start", justifyContent: "center", padding: "32px 16px 56px" }}>
+            <main style={{ flex: 1, display: "flex", alignItems: center ? "center" : "flex-start", justifyContent: "center", padding: "56px 20px 88px" }}>
               <div className="tpo-fade" style={{ width: "100%", maxWidth: width }}>{children}</div>
             </main>
             <Footer go={go} />
@@ -303,8 +293,8 @@ function Page({ go, registered, width = 460, center = false, children }) {
 }
 
 const inputStyle = {
-    width: "100%", height: 44, padding: "0 14px",
-    border: `1px solid ${T.border}`, borderRadius: T.radius,
+    width: "100%", height: 48, padding: "0 14px",
+    border: `1px solid ${T.borderStrong}`, borderRadius: T.radius,
     background: T.bgCard, color: T.text, fontSize: 15,
     fontFamily: "inherit", outline: "none", transition: "border-color 0.15s",
     boxSizing: "border-box",
@@ -324,9 +314,9 @@ function getResults(q) {
 
 function ProgressBar({ step, total }) {
     return (
-          <div style={{ display: "flex", gap: 6, marginBottom: 20 }} role="progressbar" aria-valuemin={1} aria-valuemax={total} aria-valuenow={step}>
+          <div style={{ display: "flex", gap: 4, marginBottom: 40 }} role="progressbar" aria-valuemin={1} aria-valuemax={total} aria-valuenow={step}>
             {Array.from({ length: total }).map((_, i) => (
-                    <div key={i} style={{ flex: 1, height: 5, borderRadius: 99, background: i < step ? T.accent : "rgba(0,25,49,0.08)", transition: "background 0.3s" }} />
+                    <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i < step ? T.navy : T.border, transition: "background 0.3s" }} />
                   ))}
           </div>
         );
@@ -396,81 +386,53 @@ function DestSearch({ value, onChange, onSelect }) {
         );
 }
 
-function SemBadge({ semester }) {
-    const map = { fall: { bg: "#fbf3e2", color: "#8a6416" }, spring: { bg: T.greenBg, color: T.green }, double: { bg: T.navySoft, color: T.navy } };
-    const c = map[semester] || map.double;
-    return <span style={{ background: c.bg, color: c.color, fontSize: 11, padding: "2px 9px", borderRadius: 99, fontWeight: 600 }}>{SEMESTER_LABELS[semester] || semester}</span>;
+function SemBadge({ semester, light = false }) {
+    return <span style={{ fontSize: 13, color: light ? "rgba(255,255,255,0.75)" : T.muted }}>{SEMESTER_LABELS[semester] || semester}</span>;
 }
 
-// Choix du semestre sous forme de cartes (icône + période)
+// Choix du semestre : trois options simples
 const SEMESTER_OPTIONS = [
-    { val: "fall", label: "Fall", sub: "Sept – Déc", icon: "ti-leaf" },
-    { val: "spring", label: "Spring", sub: "Janv – Juin", icon: "ti-flower" },
-    { val: "double", label: "Double diplôme", sub: "Année complète", icon: "ti-school" },
+    { val: "fall", label: "Fall", sub: "Sept – Déc" },
+    { val: "spring", label: "Spring", sub: "Janv – Juin" },
+    { val: "double", label: "Double diplôme", sub: "Année complète" },
 ];
 
-function SemCard({ label, sub, icon, active, onClick }) {
+function SemCard({ label, sub, active, onClick }) {
     return (
           <button onClick={onClick} aria-pressed={active}
-                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 12px", textAlign: "left", background: active ? T.accentSoft : T.bgCard, border: `1.5px solid ${active ? T.accent : T.border}`, borderRadius: 12, cursor: "pointer", transition: "all 0.15s", boxShadow: active ? "0 0 0 3px rgba(226,0,26,0.08)" : T.shadow }}>
-            <span style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, background: active ? T.accent : T.bgHover, color: active ? "#fff" : T.muted, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}><i className={`ti ${icon}`} /></span>
-            <span style={{ minWidth: 0 }}>
-              <span style={{ display: "block", fontSize: 14, fontWeight: 600, color: T.text }}>{label}</span>
-              <span style={{ display: "block", fontSize: 12, color: T.muted }}>{sub}</span>
-            </span>
+                  style={{ padding: "12px 14px", textAlign: "left", background: active ? T.navySoft : T.bgCard, border: `1px solid ${active ? T.navy : T.borderStrong}`, borderRadius: T.radius, cursor: "pointer", transition: "border-color 0.15s, background 0.15s" }}>
+            <span style={{ display: "block", fontSize: 14, fontWeight: 500, color: T.text }}>{label}</span>
+            <span style={{ display: "block", fontSize: 13, color: T.muted, marginTop: 2 }}>{sub}</span>
           </button>
         );
 }
 
-const LOOKING_OPTIONS = [["coloc", "Une coloc", "ti-home"], ["amis", "Des amis", "ti-users"], ["conseils", "Des conseils", "ti-bulb"], ["activites", "Des activités", "ti-ball-football"]];
+const LOOKING_OPTIONS = [["coloc", "Une coloc"], ["amis", "Des amis"], ["conseils", "Des conseils"], ["activites", "Des activités"]];
 const LOOKING_LABELS = { coloc: "Coloc", amis: "Amis", conseils: "Conseils", activites: "Activités" };
 
-// Ligne de « preuve sociale » affichée pendant l'inscription
-function SocialProof({ stats }) {
-    if (!stats || typeof stats.total !== "number" || stats.total < 1) return null;
-    return (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: T.muted, marginBottom: 24 }}>
-            <span style={{ position: "relative", width: 8, height: 8 }}>
-              <span style={{ position: "absolute", inset: 0, borderRadius: "50%", background: T.accent, animation: "tpo-pulse 1.8s ease-out infinite" }} />
-              <span style={{ position: "absolute", inset: 0, borderRadius: "50%", background: T.accent }} />
-            </span>
-            <span><strong style={{ color: T.text }}>{stats.total} étudiants emlyon</strong> déjà inscrits</span>
-          </div>
-        );
-}
-
-function StudentCard({ student }) {
+// Un match : une ligne simple (initiales, nom, infos, bouton de contact)
+function StudentCard({ student, isNew = false }) {
     const initials = (student.firstName[0] + student.lastName[0]).toUpperCase();
+    const details = [SEMESTER_LABELS[student.semester] || student.semester, ...(student.lookingFor || []).map(lf => LOOKING_LABELS[lf] || lf)].filter(Boolean).join(" · ");
+    const contact = student.whatsapp
+          ? { href: `https://wa.me/${student.whatsapp.replace(/\D/g, "")}`, label: "WhatsApp", ext: true }
+          : student.email ? { href: `mailto:${student.email}?subject=${encodeURIComponent("Tu pars où en échange ? — " + student.destination.school)}`, label: "Email" } : null;
     return (
-          <div className="tpo-fade" style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, padding: "16px 18px", boxShadow: T.shadow }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: (student.whatsapp || student.lookingFor?.length > 0) ? 12 : 0 }}>
-                            <div style={{ width: 42, height: 42, borderRadius: "50%", background: T.navy, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 14, color: "#fff", flexShrink: 0, boxShadow: `0 0 0 3px ${T.bgCard}, 0 0 0 4px ${T.gold}` }}>{initials}</div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                                                      <span style={{ fontWeight: 600, fontSize: 14, color: T.text }}>{student.firstName} {student.lastName}</span>
-                                                      <SemBadge semester={student.semester} />
-                                        </div>
-                                        <p style={{ margin: "2px 0 0", fontSize: 12, color: T.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{student.destination.school} · {student.destination.city}</p>
-                            </div>
-                  </div>
-            {student.lookingFor?.length > 0 && (
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: student.whatsapp ? 10 : 0 }}>
-                      {student.lookingFor.map(lf => (
-                                  <span key={lf} style={{ fontSize: 11, padding: "3px 9px", borderRadius: 99, background: T.accentSoft, color: T.accent, fontWeight: 500 }}>{LOOKING_LABELS[lf] || lf}</span>
-                                ))}
-                    </div>
-                  )}
-            {student.whatsapp ? (
-                    <a href={`https://wa.me/${student.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
-                                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", padding: "9px", background: "#25D366", color: "#fff", borderRadius: T.radius, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
-                                <i className="ti ti-brand-whatsapp" style={{ fontSize: 17 }} /> Contacter sur WhatsApp
-                    </a>
-                  ) : student.email ? (
-                    <a href={`mailto:${student.email}?subject=${encodeURIComponent("Tu pars où en échange ? — " + student.destination.school)}`}
-                                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", padding: "9px", background: T.navy, color: "#fff", borderRadius: T.radius, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
-                                <i className="ti ti-mail" style={{ fontSize: 16 }} /> Contacter par email
-                    </a>
-                  ) : null}
+          <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 0", borderBottom: `1px solid ${T.border}` }}>
+            <div style={{ width: 40, height: 40, borderRadius: "50%", background: T.navySoft, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 13, color: T.navy, flexShrink: 0 }}>{initials}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontWeight: 500, fontSize: 15, color: T.text }}>
+                {student.firstName} {student.lastName}
+                {isNew && <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 500, color: T.accent }}>Nouveau</span>}
+              </p>
+              <p style={{ margin: "2px 0 0", fontSize: 13, color: T.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{details}</p>
+            </div>
+            {contact && (
+              <a href={contact.href} {...(contact.ext ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                 style={{ flexShrink: 0, padding: "8px 14px", border: `1px solid ${T.borderStrong}`, borderRadius: T.radius, fontSize: 14, fontWeight: 500, color: T.text, textDecoration: "none", background: T.bgCard }}>
+                {contact.label}
+              </a>
+            )}
           </div>
         );
 }
@@ -497,6 +459,8 @@ export default function App() {
         const saved = loadToken();
         if (saved) getMatches(saved).then(result => {
                 setToken(saved); setRegistered(result.student); setMatches(result.matches || []);
+                // Déjà connecté : on arrive directement dans son espace (sauf lien direct vers la carte)
+                setScreen(s => (s === "home" ? "matches" : s));
         }).catch(() => saveToken(null));
   }, []);
 
@@ -579,6 +543,7 @@ export default function App() {
   function go(s) {
         if (s === "register") setRegStep(1);
         if (s === "matches" && !registered) s = "lookup";
+        if (s === "home" && registered) s = "matches";
         setError(""); setVerifError("");
         setScreen(s);
         window.scrollTo(0, 0);
@@ -589,35 +554,22 @@ export default function App() {
         <Page go={go} registered={registered} width={1040} center>
           <div className="tpo-hero">
             <div>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: 99, padding: "5px 12px 5px 10px", marginBottom: 22, boxShadow: T.shadow }}>
-                <span style={{ position: "relative", width: 8, height: 8 }}>
-                  <span style={{ position: "absolute", inset: 0, borderRadius: "50%", background: T.accent, animation: "tpo-pulse 1.8s ease-out infinite" }} />
-                  <span style={{ position: "absolute", inset: 0, borderRadius: "50%", background: T.accent }} />
-                </span>
-                <span style={{ fontSize: 12, color: T.text, fontWeight: 500 }}>emlyon GBBA · 2026–2027</span>
-              </div>
-              <h1 style={{ fontFamily: T.serif, fontSize: "clamp(36px, 6vw, 54px)", fontWeight: 700, color: T.text, margin: "0 0 16px", lineHeight: 1.08, letterSpacing: "-1px" }}>
-                Tu pars où en <span style={{ color: T.accent, fontStyle: "italic", fontWeight: 600 }}>échange</span> ?
+              <p style={{ fontSize: 14, color: T.muted, margin: "0 0 20px" }}>emlyon GBBA · Promo 2026–2027</p>
+              <h1 style={{ fontFamily: T.serif, fontSize: "clamp(36px, 5.5vw, 52px)", fontWeight: 600, color: T.text, margin: "0 0 20px", lineHeight: 1.1, letterSpacing: "-0.8px" }}>
+                Tu pars où en échange ?
               </h1>
-              <p style={{ fontSize: 17, color: T.muted, margin: "0 0 28px", lineHeight: 1.6, maxWidth: 440 }}>
-                Découvre qui part à la même destination que toi et prépare ton départ ensemble. En 30 secondes.
+              <p style={{ fontSize: 18, color: T.muted, margin: "0 0 36px", lineHeight: 1.6, maxWidth: 420 }}>
+                Retrouve les étudiants emlyon qui partent au même endroit que toi.
               </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 420 }}>
-                <button onClick={() => go("register")} style={btnPrimary()}>Trouver mes matchs →</button>
-                <button onClick={() => go(registered ? "matches" : "lookup")} style={btnSecondary}>
-                  {registered ? "Voir mes matchs" : "J'ai déjà un compte"}
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 20 }}>
+                <button onClick={() => go("register")} style={{ ...btnPrimary(), width: "auto", padding: "14px 28px" }}>Trouver mes matchs</button>
+                <button onClick={() => go(registered ? "matches" : "lookup")} style={{ background: "none", border: "none", padding: 0, fontSize: 15, color: T.text, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 4 }}>
+                  {registered ? "Mon espace" : "J'ai déjà un compte"}
                 </button>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", marginTop: 28, maxWidth: 420, background: T.navy, borderRadius: T.radiusLg, overflow: "hidden" }}>
-                {[{ value: stats?.total, label: "inscrits" }, { value: stats?.countries, label: "pays" }, { value: PARTNER_SCHOOLS, label: "universités" }].map(({ value, label }, i) => (
-                  <div key={label} style={{ padding: "16px 8px", textAlign: "center", borderLeft: i ? "1px solid rgba(255,255,255,0.12)" : "none" }}>
-                    {value == null
-                      ? <span style={{ display: "block", width: 40, height: 28, margin: "0 auto", borderRadius: 6, background: "rgba(255,255,255,0.12)" }} />
-                      : <p style={{ margin: 0, fontSize: 26, fontWeight: 700, color: "#fff", letterSpacing: "-0.5px", lineHeight: 1.1 }}>{value}</p>}
-                    <p style={{ margin: "4px 0 0", fontSize: 12, color: T.gold, fontWeight: 500 }}>{label}</p>
-                  </div>
-                ))}
-              </div>
+              <p style={{ fontSize: 14, color: T.faint, margin: "36px 0 0" }}>
+                {stats && typeof stats.total === "number" ? `${stats.total} étudiants inscrits · ${stats.countries} pays` : " "}
+              </p>
             </div>
             <MapPreview T={T} onOpen={() => go("map")} />
           </div>
@@ -629,259 +581,187 @@ export default function App() {
         <>
           <p style={eyebrow}>Étape {n} sur 4</p>
           <h2 style={h2Style}>{title}</h2>
-          {sub && <p style={{ fontSize: 15, color: T.muted, margin: "0 0 24px", lineHeight: 1.5 }}>{sub}</p>}
+          {sub && <p style={{ fontSize: 15, color: T.muted, margin: "0 0 32px", lineHeight: 1.6 }}>{sub}</p>}
         </>
       );
+  const errText = msg => msg ? <p style={{ margin: 0, fontSize: 14, color: T.red }}>{msg}</p> : null;
 
   if (screen === "register") return (
         <Page go={go} registered={registered}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-            <button onClick={() => { if (regStep === 1) go("home"); else setRegStep(s => s - 1); setError(""); setVerifError(""); }} style={pillBack}>
-              <i className="ti ti-arrow-left" /> Retour
-            </button>
-            {form.destination && regStep === 4 && (
-              <span style={{ ...pillBack, cursor: "default", color: T.muted, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                <i className="ti ti-map-pin" style={{ color: T.accent }} /> {form.destination.city}
-              </span>
-            )}
-          </div>
-          <div style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: 20, padding: "24px 22px 26px", boxShadow: T.shadowMd }}>
-            <ProgressBar step={regStep} total={4} />
-            <SocialProof stats={stats} />
+          <button onClick={() => { if (regStep === 1) go("home"); else setRegStep(s => s - 1); setError(""); setVerifError(""); }} style={{ ...pillBack, marginBottom: 24 }}>
+            ← Retour
+          </button>
+          <ProgressBar step={regStep} total={4} />
 
-            {regStep === 1 && (
-              <div className="tpo-fade">
-                {stepHeader(1, "Qui es-tu ?", "Utilise ton adresse email emlyon.")}
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                    <input placeholder="Prénom" value={form.firstName} autoFocus
-                           onChange={e => { const firstName = e.target.value; const email = firstName && form.lastName ? `${norm(firstName)}.${norm(form.lastName)}${DOMAIN}` : form.email; setForm(f => ({ ...f, firstName, email })); }}
-                           style={inputStyle} />
-                    <input placeholder="Nom" value={form.lastName}
-                           onChange={e => { const lastName = e.target.value; const email = form.firstName && lastName ? `${norm(form.firstName)}.${norm(lastName)}${DOMAIN}` : form.email; setForm(f => ({ ...f, lastName, email })); }}
-                           style={inputStyle} />
-                  </div>
-                  <div>
-                    <EmailInput value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} onEnter={() => step1Valid() && sendVerifCode()} />
-                    <p style={{ margin: "6px 0 0", fontSize: 12, color: T.faint }}>{form.firstName && form.lastName ? "Généré automatiquement — modifie si besoin" : "Remplis prénom et nom pour générer ton email"}</p>
-                  </div>
-                  {verifError && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{verifError}</p>}
-                  {error && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{error}</p>}
-                  <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", padding: "12px 14px", background: T.bgHover, borderRadius: T.radius, border: `1px solid ${T.border}` }}>
-                    <input type="checkbox" checked={form.consent} onChange={e => setForm(f => ({ ...f, consent: e.target.checked }))} style={{ marginTop: 2, width: 16, height: 16, flexShrink: 0, cursor: "pointer", accentColor: T.accent }} />
-                    <span style={{ fontSize: 13, color: T.muted, lineHeight: 1.5 }}>
-                      J'accepte que mes données (nom, email, destination, WhatsApp) soient partagées uniquement avec les étudiants emlyon partant à la même destination.{" "}
-                      <span onClick={e => { e.preventDefault(); go("privacy"); }} style={{ color: T.text, textDecoration: "underline", cursor: "pointer" }}>Politique de confidentialité</span>
-                    </span>
-                  </label>
-                  <button onClick={(e) => { e.preventDefault(); setError(""); if (!form.firstName.trim() || !form.lastName.trim()) { setError("Entre ton prénom et ton nom."); return; } if (!form.email.endsWith(DOMAIN)) { setError("Utilise ton adresse @edu.em-lyon.com"); return; } if (!form.consent) { setError("Tu dois accepter les conditions pour continuer."); return; } setError(""); sendVerifCode(); }}
-                          disabled={!step1Valid() || loading}
-                          style={{ ...btnPrimary(!!step1Valid()), opacity: loading ? 0.7 : 1 }}>
-                    {loading ? "Envoi du code…" : "Vérifier mon email →"}
-                  </button>
+          {regStep === 1 && (
+            <div>
+              {stepHeader(1, "Qui es-tu ?", "Utilise ton adresse email emlyon.")}
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <input placeholder="Prénom" value={form.firstName} autoFocus
+                         onChange={e => { const firstName = e.target.value; const email = firstName && form.lastName ? `${norm(firstName)}.${norm(form.lastName)}${DOMAIN}` : form.email; setForm(f => ({ ...f, firstName, email })); }}
+                         style={inputStyle} />
+                  <input placeholder="Nom" value={form.lastName}
+                         onChange={e => { const lastName = e.target.value; const email = form.firstName && lastName ? `${norm(form.firstName)}.${norm(lastName)}${DOMAIN}` : form.email; setForm(f => ({ ...f, lastName, email })); }}
+                         style={inputStyle} />
                 </div>
+                <EmailInput value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} onEnter={() => step1Valid() && sendVerifCode()} />
+                {errText(verifError)}
+                {errText(error)}
+                <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", margin: "8px 0" }}>
+                  <input type="checkbox" checked={form.consent} onChange={e => setForm(f => ({ ...f, consent: e.target.checked }))} style={{ marginTop: 3, width: 16, height: 16, flexShrink: 0, cursor: "pointer", accentColor: T.navy }} />
+                  <span style={{ fontSize: 13, color: T.muted, lineHeight: 1.6 }}>
+                    J'accepte que mes informations soient partagées uniquement avec les étudiants emlyon qui partent au même endroit.{" "}
+                    <span onClick={e => { e.preventDefault(); go("privacy"); }} style={{ color: T.text, textDecoration: "underline", cursor: "pointer" }}>En savoir plus</span>
+                  </span>
+                </label>
+                <button onClick={(e) => { e.preventDefault(); setError(""); if (!form.firstName.trim() || !form.lastName.trim()) { setError("Entre ton prénom et ton nom."); return; } if (!form.email.endsWith(DOMAIN)) { setError("Utilise ton adresse @edu.em-lyon.com"); return; } if (!form.consent) { setError("Tu dois accepter les conditions pour continuer."); return; } setError(""); sendVerifCode(); }}
+                        disabled={!step1Valid() || loading}
+                        style={{ ...btnPrimary(!!step1Valid()), opacity: loading ? 0.7 : 1 }}>
+                  {loading ? "Envoi du code…" : "Continuer"}
+                </button>
               </div>
-            )}
+            </div>
+          )}
 
-            {regStep === 2 && (
-              <div className="tpo-fade">
-                {stepHeader(2, "Vérifie ton email")}
-                <p style={{ fontSize: 15, color: T.muted, margin: "0 0 4px" }}>On a envoyé un code à 6 chiffres à</p>
-                <p style={{ fontSize: 15, fontWeight: 600, color: T.text, margin: "0 0 24px", wordBreak: "break-all" }}>{form.email}</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <input type="text" inputMode="numeric" maxLength={6} autoComplete="one-time-code" placeholder="_ _ _ _ _ _" value={verifCode}
-                         onChange={e => setVerifCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                         onKeyDown={e => e.key === "Enter" && verifCode.length === 6 && verifyCode()}
-                         autoFocus style={{ ...inputStyle, height: 60, fontSize: 28, fontWeight: 700, letterSpacing: 10, textAlign: "center" }} />
-                  {verifError && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{verifError}</p>}
-                  <button onClick={verifyCode} disabled={loading || verifCode.length !== 6}
-                          style={{ ...btnPrimary(verifCode.length === 6), opacity: loading ? 0.7 : 1 }}>
-                    {loading ? "Vérification…" : "Confirmer →"}
-                  </button>
-                  <button onClick={() => { setVerifCode(""); sendVerifCode(); }} disabled={loading} style={btnGhost}>
-                    Renvoyer le code
-                  </button>
-                </div>
+          {regStep === 2 && (
+            <div>
+              {stepHeader(2, "Vérifie ton email")}
+              <p style={{ fontSize: 15, color: T.muted, margin: "0 0 32px", lineHeight: 1.6 }}>
+                Entre le code à 6 chiffres envoyé à <span style={{ color: T.text, fontWeight: 500, wordBreak: "break-all" }}>{form.email}</span>
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <input type="text" inputMode="numeric" maxLength={6} autoComplete="one-time-code" placeholder="000000" value={verifCode}
+                       onChange={e => setVerifCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                       onKeyDown={e => e.key === "Enter" && verifCode.length === 6 && verifyCode()}
+                       autoFocus style={{ ...inputStyle, height: 56, fontSize: 24, fontWeight: 500, letterSpacing: 8, textAlign: "center" }} />
+                {errText(verifError)}
+                <button onClick={verifyCode} disabled={loading || verifCode.length !== 6}
+                        style={{ ...btnPrimary(verifCode.length === 6), opacity: loading ? 0.7 : 1 }}>
+                  {loading ? "Vérification…" : "Confirmer"}
+                </button>
+                <button onClick={() => { setVerifCode(""); sendVerifCode(); }} disabled={loading} style={btnGhost}>
+                  Renvoyer le code
+                </button>
               </div>
-            )}
+            </div>
+          )}
 
-            {regStep === 3 && (
-              <div className="tpo-fade">
-                {stepHeader(3, "Tu pars où ?", "Tape le pays, la ville ou le nom de l'école.")}
-                <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          {regStep === 3 && (
+            <div>
+              {stepHeader(3, "Tu pars où ?", "Tape le pays, la ville ou le nom de l'école.")}
+              <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+                <div>
                   <DestSearch value={form.destQuery} onChange={v => setForm(f => ({ ...f, destQuery: v, destination: null }))} onSelect={d => { setForm(f => ({ ...f, destQuery: `${d.school} – ${d.city}`, destination: d })); getDestinationPreview(d.school).then(setDestPreview).catch(() => setDestPreview({ count: 0, initials: [] })); }} />
-                  {form.destination && (() => { const count = destPreview.count; return (
-                    <div className="tpo-fade" style={{ padding: "14px 16px", background: count > 0 ? T.greenBg : T.bgHover, borderRadius: 12, border: `1px solid ${count > 0 ? "#bfe6cc" : T.border}`, marginTop: -6 }}>
-                      {count > 0 ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <div style={{ display: "flex" }}>
-                            {destPreview.initials.slice(0, 4).map((initials, i) => (
-                              <div key={i} style={{ width: 32, height: 32, marginLeft: i ? -8 : 0, borderRadius: "50%", background: T.navy, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 600, color: "#fff", filter: "blur(3px)", border: `2px solid ${T.greenBg}` }}>
-                                {initials}
-                              </div>
-                            ))}
-                            {count > 4 && <div style={{ width: 32, height: 32, marginLeft: -8, borderRadius: "50%", background: T.bgCard, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, color: T.text, border: `2px solid ${T.greenBg}` }}>+{count - 4}</div>}
-                          </div>
-                          <div>
-                            <p style={{ margin: 0, fontSize: 14, color: T.green, fontWeight: 600 }}>{count} étudiant{count > 1 ? "s" : ""} déjà inscrit{count > 1 ? "s" : ""}</p>
-                            <p style={{ margin: "2px 0 0", fontSize: 12, color: T.green }}>Inscris-toi pour voir leurs profils →</p>
-                          </div>
-                        </div>
-                      ) : <p style={{ margin: 0, fontSize: 13, color: T.muted, fontWeight: 500 }}><i className="ti ti-sparkles" style={{ color: T.gold }} /> Tu seras le premier pour cette destination !</p>}
-                    </div>
-                  ); })()}
-                  <div>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: T.text, margin: "0 0 10px" }}>Quand pars-tu ?</p>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8 }}>
-                      {SEMESTER_OPTIONS.map(o => (
-                        <SemCard key={o.val} {...o} active={form.semester === o.val} onClick={() => setForm(f => ({ ...f, semester: o.val }))} />
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: T.text, margin: "0 0 10px" }}>Je cherche <span style={{ fontWeight: 400, color: T.faint }}>(optionnel)</span></p>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      {LOOKING_OPTIONS.map(([val, label, icon]) => {
-                        const active = form.lookingFor.includes(val);
-                        return (
-                          <button key={val} aria-pressed={active} onClick={() => setForm(f => ({ ...f, lookingFor: active ? f.lookingFor.filter(x => x !== val) : [...f.lookingFor, val] }))}
-                                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", fontSize: 13, fontWeight: active ? 600 : 500, borderRadius: 99, background: active ? T.accent : T.bgCard, color: active ? "#fff" : T.text, border: `1px solid ${active ? T.accent : T.borderStrong}`, cursor: "pointer", transition: "all 0.12s" }}>
-                            <i className={`ti ${active ? "ti-check" : icon}`} style={{ fontSize: 15 }} /> {label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <button onClick={() => step2Valid() && setRegStep(4)} disabled={!step2Valid()} style={btnPrimary(step2Valid())}>
-                    Continuer →
-                  </button>
+                  {form.destination && (
+                    <p style={{ margin: "10px 0 0", fontSize: 14, color: destPreview.count > 0 ? T.green : T.muted }}>
+                      {destPreview.count > 0
+                        ? `${destPreview.count} étudiant${destPreview.count > 1 ? "s" : ""} emlyon ${destPreview.count > 1 ? "y sont" : "y est"} déjà inscrit${destPreview.count > 1 ? "s" : ""}.`
+                        : "Tu es le premier pour cette destination."}
+                    </p>
+                  )}
                 </div>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 500, color: T.text, margin: "0 0 12px" }}>Semestre</p>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8 }}>
+                    {SEMESTER_OPTIONS.map(o => (
+                      <SemCard key={o.val} {...o} active={form.semester === o.val} onClick={() => setForm(f => ({ ...f, semester: o.val }))} />
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 500, color: T.text, margin: "0 0 12px" }}>Je cherche <span style={{ fontWeight: 400, color: T.faint }}>(facultatif)</span></p>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {LOOKING_OPTIONS.map(([val, label]) => {
+                      const active = form.lookingFor.includes(val);
+                      return (
+                        <button key={val} aria-pressed={active} onClick={() => setForm(f => ({ ...f, lookingFor: active ? f.lookingFor.filter(x => x !== val) : [...f.lookingFor, val] }))}
+                                style={{ padding: "8px 16px", fontSize: 14, borderRadius: 99, background: active ? T.navy : T.bgCard, color: active ? "#fff" : T.text, border: `1px solid ${active ? T.navy : T.borderStrong}`, cursor: "pointer", transition: "all 0.12s" }}>
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <button onClick={() => step2Valid() && setRegStep(4)} disabled={!step2Valid()} style={btnPrimary(step2Valid())}>
+                  Continuer
+                </button>
               </div>
-            )}
+            </div>
+          )}
 
-            {regStep === 4 && (
-              <div className="tpo-fade">
-                {stepHeader(4, "Ton WhatsApp", "Obligatoire — tes matchs pourront te contacter directement.")}
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <div style={{ position: "relative" }}>
-                    <i className="ti ti-brand-whatsapp" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 20, color: "#25D366" }} />
-                    <input type="text" placeholder="+33 6 12 34 56 78" value={form.whatsappNumber} autoFocus pattern=".*" inputMode="tel"
-                           onChange={e => setForm(f => ({ ...f, whatsappNumber: e.target.value }))}
-                           style={{ ...inputStyle, paddingLeft: 44 }} />
-                  </div>
-                  <p style={{ margin: 0, fontSize: 12, color: T.faint }}>Inclus l'indicatif si tu n'es pas en France (ex : +34 6 12 34 56 78)</p>
-                  {error && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{error}</p>}
-                  <button onClick={() => { if (!form.whatsappNumber.trim()) { setError("Entre ton numéro WhatsApp pour continuer."); return; } handleSubmit(); }} disabled={loading}
-                          style={{ ...btnPrimary(!!form.whatsappNumber.trim()), cursor: "pointer", opacity: loading ? 0.7 : 1 }}>
-                    {loading ? "Inscription en cours…" : "Voir mes matchs →"}
-                  </button>
-                </div>
+          {regStep === 4 && (
+            <div>
+              {stepHeader(4, "Ton numéro WhatsApp", "Tes matchs pourront te contacter directement.")}
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <input type="text" placeholder="+33 6 12 34 56 78" value={form.whatsappNumber} autoFocus pattern=".*" inputMode="tel"
+                       onChange={e => setForm(f => ({ ...f, whatsappNumber: e.target.value }))}
+                       style={inputStyle} />
+                <p style={{ margin: 0, fontSize: 13, color: T.faint }}>Avec l'indicatif si ton numéro n'est pas français.</p>
+                {errText(error)}
+                <button onClick={() => { if (!form.whatsappNumber.trim()) { setError("Entre ton numéro WhatsApp pour continuer."); return; } handleSubmit(); }} disabled={loading}
+                        style={{ ...btnPrimary(!!form.whatsappNumber.trim()), cursor: "pointer", opacity: loading ? 0.7 : 1 }}>
+                  {loading ? "Inscription en cours…" : "Voir mes matchs"}
+                </button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </Page>
       );
 
     // ── LOOKUP ──
     if (screen === "lookup") return (
           <Page go={go} registered={registered}>
-            <button onClick={() => go("home")} style={{ ...pillBack, marginBottom: 18 }}><i className="ti ti-arrow-left" /> Retour</button>
-            <div style={{ background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: 20, padding: "26px 22px", boxShadow: T.shadowMd }}>
-              <p style={eyebrow}>Bon retour</p>
-              <h2 style={h2Style}>Retrouver mes matchs</h2>
-              <p style={{ fontSize: 15, color: T.muted, margin: "0 0 24px" }}>Entre l'adresse avec laquelle tu t'es inscrit.</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {!lookupCodeSent ? (<>
-                  <EmailInput value={lookupEmail} onChange={setLookupEmail} onEnter={sendLookupCode} />
-                  {error && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{error}</p>}
-                  <button onClick={sendLookupCode} disabled={loading || !lookupEmail.includes("@")}
-                          style={{ ...btnPrimary(!loading && lookupEmail.includes("@")) }}>
-                    {loading ? "Envoi du code…" : "Recevoir un code →"}
-                  </button>
-                </>) : (<>
-                  <p style={{ fontSize: 14, color: T.muted, margin: 0 }}>Code à 6 chiffres envoyé à <strong style={{ color: T.text }}>{lookupEmail}</strong></p>
-                  <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="_ _ _ _ _ _" value={lookupCode} autoFocus
-                         onChange={e => setLookupCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                         onKeyDown={e => e.key === "Enter" && lookupCode.length === 6 && handleLookup()}
-                         style={{ ...inputStyle, height: 60, fontSize: 28, fontWeight: 700, letterSpacing: 10, textAlign: "center" }} />
-                  {error && <p style={{ margin: 0, fontSize: 13, color: T.red }}>{error}</p>}
-                  <button onClick={handleLookup} disabled={loading || lookupCode.length !== 6}
-                          style={btnPrimary(!loading && lookupCode.length === 6)}>
-                    {loading ? "Vérification…" : "Voir mes matchs →"}
-                  </button>
-                  <button onClick={() => { setLookupCodeSent(false); setLookupCode(""); setError(""); }} style={btnGhost}>
-                    Changer d'adresse
-                  </button>
-                </>)}
-                <div style={{ height: 1, background: T.border, margin: "6px 0" }} />
-                <button onClick={() => go("register")} style={btnSecondary}>
-                  Pas encore inscrit ? S'inscrire
+            <button onClick={() => go("home")} style={{ ...pillBack, marginBottom: 40 }}>← Retour</button>
+            <h2 style={h2Style}>Accéder à mon espace</h2>
+            <p style={{ fontSize: 15, color: T.muted, margin: "0 0 32px", lineHeight: 1.6 }}>
+              {!lookupCodeSent ? "Entre l'adresse avec laquelle tu t'es inscrit. On t'envoie un code." : <>Entre le code à 6 chiffres envoyé à <span style={{ color: T.text, fontWeight: 500 }}>{lookupEmail}</span></>}
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {!lookupCodeSent ? (<>
+                <EmailInput value={lookupEmail} onChange={setLookupEmail} onEnter={sendLookupCode} />
+                {errText(error)}
+                <button onClick={sendLookupCode} disabled={loading || !lookupEmail.includes("@")}
+                        style={btnPrimary(!loading && lookupEmail.includes("@"))}>
+                  {loading ? "Envoi du code…" : "Recevoir un code"}
                 </button>
-              </div>
+              </>) : (<>
+                <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="000000" value={lookupCode} autoFocus
+                       onChange={e => setLookupCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                       onKeyDown={e => e.key === "Enter" && lookupCode.length === 6 && handleLookup()}
+                       style={{ ...inputStyle, height: 56, fontSize: 24, fontWeight: 500, letterSpacing: 8, textAlign: "center" }} />
+                {errText(error)}
+                <button onClick={handleLookup} disabled={loading || lookupCode.length !== 6}
+                        style={btnPrimary(!loading && lookupCode.length === 6)}>
+                  {loading ? "Vérification…" : "Accéder à mon espace"}
+                </button>
+                <button onClick={() => { setLookupCodeSent(false); setLookupCode(""); setError(""); }} style={btnGhost}>
+                  Changer d'adresse
+                </button>
+              </>)}
+              <p style={{ margin: "24px 0 0", fontSize: 14, color: T.muted, textAlign: "center" }}>
+                Pas encore inscrit ?{" "}
+                <button onClick={() => go("register")} style={{ background: "none", border: "none", padding: 0, fontSize: 14, color: T.text, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}>S'inscrire</button>
+              </p>
             </div>
           </Page>
         );
 
-    // ── MATCHES ──
+    // ── MON ESPACE (étudiant connecté) ──
     if (screen === "matches" && registered) return (
-          <Page go={go} registered={registered} width={560}>
-            <div style={{ position: "relative", overflow: "hidden", background: T.navy, color: "#fff", borderRadius: 20, padding: "22px 22px 20px", marginBottom: 28, boxShadow: T.shadowMd }}>
-              <i className="ti ti-plane-departure" aria-hidden="true" style={{ position: "absolute", right: -14, bottom: -26, fontSize: 130, color: "rgba(255,255,255,0.06)" }} />
-              <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 600, color: T.gold, textTransform: "uppercase", letterSpacing: "0.12em" }}>Ta destination</p>
-              <p style={{ margin: "0 0 6px", fontFamily: T.serif, fontWeight: 700, fontSize: 24, lineHeight: 1.2 }}>{registered.destination.city}</p>
-              <p style={{ margin: "0 0 12px", fontSize: 14, color: "rgba(255,255,255,0.75)" }}>{registered.destination.school} · {registered.destination.country}</p>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", position: "relative" }}>
-                <SemBadge semester={registered.semester} />
-                <button onClick={() => go("map")} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.12)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 99, padding: "7px 14px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
-                  <i className="ti ti-world" /> Où part la promo
-                </button>
-              </div>
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <h2 style={{ ...h2Style, fontSize: 26 }}>
-                {matches.length === 0 ? "Aucun match pour l'instant" : `${matches.length} match${matches.length > 1 ? "s" : ""} trouvé${matches.length > 1 ? "s" : ""}`}
-              </h2>
-              <p style={{ margin: 0, fontSize: 15, color: T.muted }}>
-                {matches.length === 0 ? "Partage le lien à ta promo pour trouver des camarades." : "Des étudiants qui partent au même endroit que toi."}
-              </p>
-            </div>
-            {matches.length === 0 ? (
-              <div style={{ background: T.bgCard, border: `1.5px dashed ${T.borderStrong}`, borderRadius: T.radiusLg, padding: "32px 20px", textAlign: "center" }}>
-                <i className="ti ti-sparkles" style={{ fontSize: 28, color: T.gold }} />
-                <p style={{ margin: "8px 0 0", fontSize: 14, color: T.muted, lineHeight: 1.6 }}>Tu es le premier à cette destination.<br />Reviens bientôt !</p>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {matches.map(s => <StudentCard key={s.id} student={s} />)}
-              </div>
-            )}
-            <div style={{ marginTop: 24 }}>
-              <ShareBar T={T} url={SITE_URL}
-                        message={destinationMessage(registered.destination, registered.semester)}
-                        title="Plus on est d'inscrits, plus tu as de matchs"
-                        subtitle="Envoie le lien dans ton groupe de promo." />
-            </div>
-            <div style={{ marginTop: 40, paddingTop: 24, borderTop: `1px solid ${T.border}` }}>
-              <p style={{ fontSize: 12, color: T.faint, marginBottom: 12, textAlign: "center" }}>
-                Tes données sont partagées uniquement avec tes matchs.{" "}
-                <span onClick={() => go("privacy")} style={{ textDecoration: "underline", cursor: "pointer" }}>Politique de confidentialité</span>
-              </p>
-              <button onClick={() => { saveToken(null); setToken(null); setRegistered(null); setMatches([]); setScreen("home"); }}
-                      style={{ ...btnGhost, marginBottom: 8 }}>
-                Se déconnecter
-              </button>
-              <button onClick={async () => {
-                        if (!window.confirm("Supprimer ton inscription ? Cette action est irréversible.")) return;
-                        try {
-                          const res = await fetch("/api/delete-me", { method: "POST", headers: authHeaders(token), body: "{}" });
-                          if (!res.ok) throw new Error();
-                          saveToken(null); setToken(null);
-                          setRegistered(null); setMatches([]); setScreen("home");
-                        } catch { alert("Erreur lors de la suppression. Contacte monzatpaul@gmail.com"); }
-                      }} style={{ ...btnGhost, color: T.red, border: "1px solid rgba(192,0,22,0.2)" }}>
-                Supprimer mon inscription
-              </button>
-            </div>
+          <Page go={go} registered={registered} width={1040}>
+            <Dashboard T={T} me={registered} matches={matches} go={go}
+                       StudentCard={StudentCard} ShareBar={ShareBar}
+                       shareProps={{ url: SITE_URL, message: destinationMessage(registered.destination, registered.semester), title: "Plus on est d'inscrits, plus tu as de matchs", subtitle: "Envoie le lien dans ton groupe de promo." }}
+                       onLogout={() => { saveToken(null); setToken(null); setRegistered(null); setMatches([]); setScreen("home"); window.scrollTo(0, 0); }}
+                       onDelete={async () => {
+                         try {
+                           const res = await fetch("/api/delete-me", { method: "POST", headers: authHeaders(token), body: "{}" });
+                           if (!res.ok) throw new Error();
+                           saveToken(null); setToken(null);
+                           setRegistered(null); setMatches([]); setScreen("home"); window.scrollTo(0, 0);
+                         } catch { alert("Erreur lors de la suppression. Contacte monzatpaul@gmail.com"); }
+                       }} />
           </Page>
         );
   // ── CARTE ──
@@ -890,7 +770,7 @@ if (screen === "map") {
       return (
         <Page go={go} registered={registered} width={820}>
           <WorldMap T={T} myDest={registered?.destination || null}
-                    backLabel={fromMatches ? "Mes matchs" : "Retour"}
+                    backLabel={fromMatches ? "Mon espace" : "Retour"}
                     onBack={() => { if (window.location.search) window.history.replaceState(null, "", window.location.pathname); go(fromMatches ? "matches" : "home"); }} />
         </Page>
       );
@@ -898,10 +778,9 @@ if (screen === "map") {
     // ── PRIVACY ──
     if (screen === "privacy") return (
           <Page go={go} registered={registered} width={620}>
-                        <button onClick={() => go(registered ? "matches" : "home")} style={{ ...pillBack, marginBottom: 24 }}><i className="ti ti-arrow-left" /> Retour</button>
-                        <p style={eyebrow}>RGPD</p>
-                        <h1 style={{ fontFamily: T.serif, fontSize: 32, fontWeight: 700, color: T.text, margin: "0 0 6px", letterSpacing: "-0.5px" }}>Politique de confidentialité</h1>
-                        <p style={{ fontSize: 13, color: T.faint, margin: "0 0 32px" }}>Dernière mise à jour : juillet 2026</p>
+                        <button onClick={() => go(registered ? "matches" : "home")} style={{ ...pillBack, marginBottom: 40 }}>← Retour</button>
+                        <h1 style={{ ...h2Style, fontSize: 34 }}>Politique de confidentialité</h1>
+                        <p style={{ fontSize: 14, color: T.faint, margin: "0 0 48px" }}>Dernière mise à jour : juillet 2026</p>
                   {[
             { title: "Qui sommes-nous ?", content: "Tu pars où en échange ? est une application étudiante créée par des étudiants emlyon pour les étudiants emlyon partant en échange académique. Ce projet n'est pas affilié officiellement à emlyon business school." },
             { title: "Quelles données collectons-nous ?", content: "Lors de ton inscription, nous collectons : ton prénom et nom, ton adresse email @edu.em-lyon.com, ta destination d'échange (école, ville, pays), ton semestre, et ton numéro WhatsApp." },
@@ -911,14 +790,12 @@ if (screen === "map") {
             { title: "Tes droits (RGPD)", content: "Tu as le droit d'accéder à tes données, de les corriger, et de les supprimer à tout moment via le bouton 'Supprimer mon inscription' sur ta page de matchs. Pour toute question, contacte : monzatpaul@gmail.com" },
             { title: "Sécurité", content: "Les données sont stockées sur Supabase (infrastructure sécurisée basée en Europe). Ton numéro WhatsApp n'est visible que par les étudiants qui partagent ta destination." },
                     ].map(({ title, content }) => (
-                                <div key={title} style={{ marginBottom: 24 }}>
+                                <div key={title} style={{ marginBottom: 32 }}>
                                             <h2 style={{ fontSize: 16, fontWeight: 600, color: T.text, margin: "0 0 6px" }}>{title}</h2>
-                                            <p style={{ fontSize: 14, color: T.muted, lineHeight: 1.7, margin: 0 }}>{content}</p>
+                                            <p style={{ fontSize: 15, color: T.muted, lineHeight: 1.75, margin: 0 }}>{content}</p>
                                 </div>
                               ))}
-                        <div style={{ padding: "14px 16px", background: T.bgCard, border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.accent}`, borderRadius: T.radius, marginTop: 12 }}>
-                                  <p style={{ margin: 0, fontSize: 13, color: T.muted }}>Contact RGPD : <strong style={{ color: T.text }}>monzatpaul@gmail.com</strong></p>
-                        </div>
+                        <p style={{ margin: "16px 0 0", paddingTop: 24, borderTop: `1px solid ${T.border}`, fontSize: 14, color: T.muted }}>Contact : <span style={{ color: T.text }}>monzatpaul@gmail.com</span></p>
           </Page>
         );
   
