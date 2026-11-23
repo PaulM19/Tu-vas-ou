@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { MAP_W, MAP_H, LAND_PATH, CITY_POS } from "./mapData";
+import { MAP_W, MAP_H, CITY_POS } from "./mapData";
 import { ShareBar, SITE_URL, MAP_MESSAGE } from "./share";
 
 // Une ville n'apparaît que si au moins MIN_SHOW étudiants y partent (avec le filtre de semestre choisi).
@@ -57,7 +57,9 @@ export function cityPos(c) {
 
 const RED = "#E2001A"; // rouge emlyon
 const MINE = "#001931"; // bleu marine emlyon : couleur de "ta destination"
-const LAND = "#e4dfd7";
+const OCEAN = "#0b1f33"; // fond autour de l'image satellite
+// Image satellite NASA (domaine public) reprojetée dans la même projection que la carte (repère 1000 x 438)
+const EARTH_FLAT = "/earth-flat.jpg";
 
 // Cadrages de la carte : x, y, largeur, hauteur (dans le repère de mapData)
 const VIEWS = {
@@ -390,14 +392,14 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
               </div>
             </div>
 
-            <div style={{ ...card, padding: 8, position: "relative", overflow: "hidden" }}>
+            <div style={{ ...card, padding: 0, position: "relative", overflow: "hidden", background: OCEAN, border: "none" }}>
               <svg ref={svgRef} viewBox={`${bx} ${by} ${bw} ${bh}`}
                    style={{ width: "100%", height: "auto", display: "block", aspectRatio: `${MAP_W} / ${MAP_H}`, touchAction: "none", cursor: gesture.current?.type === "pan" && dragged.current ? "grabbing" : "grab", userSelect: "none" }}
                    preserveAspectRatio="xMidYMid meet"
                    onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
                    onDoubleClick={e => { const [mx, my] = toMap(e.clientX, e.clientY); zoomAt(e.shiftKey ? 2 : 0.5, mx, my); }}
                    onClick={() => { if (!dragged.current) setSelected(null); }}>
-                <path d={LAND_PATH} fill={LAND} stroke="#ffffff" strokeWidth={0.6 * k} />
+                <image href={EARTH_FLAT} x={0} y={0} width={MAP_W} height={MAP_H} preserveAspectRatio="none" />
                 {[...cities].reverse().sort((a, b) => isMine(a) - isMine(b)).map(c => {
                   const [x, y] = cityPos(c);
                   const r = radius(c.n);
@@ -410,7 +412,7 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
                       <circle cx={x} cy={y} r={Math.max(r, 10 * k)} fill="transparent" />
                       {me && <circle cx={x} cy={y} r={r + 4 * z} fill="none" stroke={MINE} strokeWidth={1.5 * z} />}
                       <circle cx={x} cy={y} r={r} fill={me ? MINE : RED} fillOpacity={active || me ? 0.95 : 0.7}
-                              stroke="#ffffff" strokeWidth={(active ? 2 : 1) * z} />
+                              stroke="#ffffff" strokeWidth={(active ? 2.2 : 1.3) * z} />
                       {r >= 11 * z && (
                         <text x={x} y={y + 4 * z} textAnchor="middle" fontSize={11 * z} fontWeight={700} fill="#ffffff" pointerEvents="none">{c.n}</text>
                       )}
@@ -509,11 +511,11 @@ export function MapPreview({ T, onOpen }) {
     <button onClick={onOpen} aria-label="Voir la carte des départs"
             style={{ width: "100%", padding: 0, textAlign: "left", cursor: "pointer", background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, overflow: "hidden", display: "block" }}>
       <span style={{ position: "relative", display: "block" }}>
-      <svg viewBox={`0 ${VB_Y} ${MAP_W} ${VB_H}`} style={{ width: "100%", height: "auto", display: "block", background: T.bgSoft || "#f8f7f5" }} aria-hidden="true">
-        <path d={LAND_PATH} fill={LAND} stroke="#ffffff" strokeWidth={0.6} />
+      <svg viewBox={`0 ${VB_Y} ${MAP_W} ${VB_H}`} style={{ width: "100%", height: "auto", display: "block", background: OCEAN }} aria-hidden="true">
+        <image href={EARTH_FLAT} x={0} y={0} width={MAP_W} height={MAP_H} preserveAspectRatio="none" />
         {(cities || []).map(c => {
           const [x, y] = cityPos(c);
-          return <circle key={c.country + c.city} cx={x} cy={y} r={4 + 9 * Math.sqrt(c.count / max)} fill={RED} fillOpacity={0.7} stroke="#fff" strokeWidth={1} />;
+          return <circle key={c.country + c.city} cx={x} cy={y} r={4 + 9 * Math.sqrt(c.count / max)} fill={RED} fillOpacity={0.85} stroke="#fff" strokeWidth={1.2} />;
         })}
       </svg>
       </span>
