@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { MAP_W, MAP_H, LAND_PATH, CITY_POS } from "./mapData";
 import { ShareBar, SITE_URL, MAP_MESSAGE } from "./share";
 
@@ -23,6 +24,30 @@ function continentOf(lat, lng) {
   if (lng < 52 && lat < 35) return lng > 34 && lat > 12 ? "Asie" : "Afrique";
   return "Asie";
 }
+// Inverse de project() : position sur la carte -> latitude / longitude (pour le globe)
+function unproject(x, y) {
+  const X = (x - 500) / 185, Y = (255.07 - y) / 185;
+  let p = Y;
+  for (let i = 0; i < 25; i++) {
+    const p2 = p * p, p4 = p2 * p2;
+    const f = p * (1.007226 + p2 * (0.015085 + p4 * (-0.044475 + 0.028874 * p2 - 0.005916 * p4))) - Y;
+    const d = 1.007226 + p2 * (0.045255 + p4 * (-0.311325 + 0.259866 * p2 - 0.065076 * p4));
+    p -= f / d;
+    if (Math.abs(f) < 1e-9) break;
+  }
+  const p2 = p * p, p4 = p2 * p2;
+  const l = X / (0.8707 - 0.131979 * p2 + p4 * (-0.013791 + p4 * (0.003971 * p2 - 0.001529 * p4)));
+  return [(l * 180) / Math.PI, (p * 180) / Math.PI];
+}
+function cityLngLat(c) {
+  if (c.lat != null && c.lng != null) return [c.lng, c.lat];
+  const pos = CITY_POS[c.city];
+  return pos ? unproject(pos[0], pos[1]) : null;
+}
+
+// Le globe n'est chargé qu'à l'ouverture du plein écran
+const Globe = lazy(() => import("./Globe"));
+
 // Position d'une ville : liste des partenaires, sinon coordonnées enregistrées
 export function cityPos(c) {
   if (CITY_POS[c.city]) return CITY_POS[c.city];
@@ -169,6 +194,16 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
     startGesture();
   };
   const [sem, setSem] = useState("all");
+  const [full, setFull] = useState(false);
+  // Plein écran : Échap pour fermer, page bloquée derrière
+  useEffect(() => {
+    if (!full) return;
+    const onKey = e => { if (e.key === "Escape") setFull(false); };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
+  }, [full]);
   // Noms par ville : seulement pour les étudiants connectés
   const [people, setPeople] = useState(null);
   const [reload, setReload] = useState(0);
@@ -233,6 +268,43 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
     fontWeight: active ? 600 : 400,
   });
 
+  // Panneau « qui part dans cette ville » (sous la carte, et en bas du globe en plein écran)
+  const renderPanel = (extra = {}) => {
+              const entry = (people || []).find(c => c.city === selected.city && c.country === selected.country);
+              const list = (entry?.people || []).filter(p => sem === "all" || p.semester === sem);
+              const hidden = Math.max(0, selected.n - list.length);
+              const SEM = { fall: "Fall", spring: "Spring", double: "Double diplôme" };
+              return (
+                <div style={{ ...card, padding: "18px 20px", marginTop: 10, ...extra }}>
+                  <p style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 500, color: T.text }}>{selected.city} <span style={{ color: T.muted, fontWeight: 400 }}>· {selected.country}</span></p>
+                  <p style={{ margin: "0 0 12px", fontSize: 14, color: T.muted }}>{selected.n} étudiant{selected.n > 1 ? "s" : ""}{sem !== "all" ? " ce semestre" : ""}</p>
+                  {!token ? (
+                    <p style={{ margin: 0, fontSize: 14, color: T.muted }}>
+                      {onLogin
+                        ? <><button onClick={onLogin} style={{ background: "none", border: "none", padding: 0, fontSize: 14, color: T.text, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}>Connecte-toi</button> pour voir qui part dans cette ville.</>
+                        : "Connecte-toi pour voir qui part dans cette ville."}
+                    </p>
+                  ) : people === null ? (
+                    <p style={{ margin: 0, fontSize: 14, color: T.faint }}>Chargement…</p>
+                  ) : (
+                    <>
+                      {list.map((p, i) => (
+                        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "10px 0", borderTop: `1px solid ${T.border}`, fontSize: 14 }}>
+                          <span style={{ color: T.text }}>{p.name}{p.me && <span style={{ color: T.muted }}> (toi)</span>}</span>
+                          <span style={{ color: T.muted, textAlign: "right", minWidth: 0 }}>{p.tripType === "internship" ? `Stage · ${p.school}` : p.tripType === "freemover" ? `Freemover · ${p.school}` : p.school}{p.semester && SEM[p.semester] ? ` · ${p.tripType && p.tripType !== "exchange" && p.semester === "double" ? "Année complète" : SEM[p.semester]}` : ""}</span>
+                        </div>
+                      ))}
+                      {hidden > 0 && <p style={{ margin: "10px 0 0", fontSize: 13, color: T.faint }}>{hidden === selected.n ? "Personne ne s'affiche ici." : `+ ${hidden} qui ne s'affiche${hidden > 1 ? "nt" : ""} pas sur la carte.`}</p>}
+                    </>
+                  )}
+                </div>
+              );
+  };
+
+  // Villes du globe (avec latitude / longitude)
+  const globeCities = useMemo(() => cities.map(c => { const ll = cityLngLat(c); return ll ? { ...c, lng: ll[0], lat: ll[1] } : null; }).filter(Boolean), [cities]);
+  const globeSelected = selected ? globeCities.find(c => c.city === selected.city && c.country === selected.country) || null : null;
+
   return (
     <div>
       <div>
@@ -268,6 +340,37 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
         {error && <p style={{ color: T.red, fontSize: 14 }}>{error}</p>}
         {!data && !error && <p style={{ color: T.muted, fontSize: 14 }}>Chargement de la carte…</p>}
 
+        {data && full && createPortal(
+          <div role="dialog" aria-modal="true" aria-label="Globe des destinations"
+               style={{ position: "fixed", inset: 0, zIndex: 1000, background: "#ffffff", display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px 14px", padding: "12px 20px", paddingTop: "calc(12px + env(safe-area-inset-top, 0px))", borderBottom: `1px solid ${T.border}` }}>
+              <span style={{ fontFamily: T.serif || "inherit", fontSize: 20, fontWeight: 600, color: T.text, flex: "1 1 auto" }}>Où part la promo ?</span>
+              <button onClick={() => setFull(false)} style={{ ...pill(false), padding: "8px 14px", fontSize: 14, order: 2 }}>Fermer ✕</button>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, order: 3, flexBasis: "100%" }}>
+                {SEMESTERS.map(([v, label]) => (
+                  <button key={v} style={pill(sem === v)} onClick={() => { setSem(v); setSelected(null); }}>{label}</button>
+                ))}
+              </div>
+            </div>
+            <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
+              <Suspense fallback={<p style={{ textAlign: "center", marginTop: 80, color: T.muted, fontSize: 14 }}>Chargement du globe…</p>}>
+                <Globe cities={globeCities} isMine={isMine} selected={globeSelected} onSelect={setSelected} />
+              </Suspense>
+              <p style={{ position: "absolute", left: 0, right: 0, top: 12, margin: 0, textAlign: "center", fontSize: 12, color: T.faint, pointerEvents: "none" }}>
+                Glisse pour faire tourner · molette ou pincement pour zoomer · touche une ville
+              </p>
+              {selected && (
+                <div style={{ position: "absolute", left: 16, right: 16, bottom: 16, display: "flex", justifyContent: "flex-start", pointerEvents: "none" }}>
+                  <div style={{ width: "100%", maxWidth: 420, maxHeight: "45vh", overflowY: "auto", pointerEvents: "auto" }}>
+                    {renderPanel({ marginTop: 0, boxShadow: T.shadowMd })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
+
         {data && (
           <>
             <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
@@ -280,6 +383,10 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
                 {Object.entries(VIEWS).map(([v, { label, box: target }]) => (
                   <button key={v} style={pill(false)} onClick={() => animateTo(target)}>{label}</button>
                 ))}
+                <button style={{ ...pill(true), display: "inline-flex", alignItems: "center", gap: 6 }} onClick={() => setFull(true)}>
+                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M1 5V1h4M9 1h4v4M13 9v4H9M5 13H1V9" /></svg>
+                  Plein écran
+                </button>
               </div>
             </div>
 
@@ -326,37 +433,7 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
               )}
             </div>
 
-            {selected && (() => {
-              const entry = (people || []).find(c => c.city === selected.city && c.country === selected.country);
-              const list = (entry?.people || []).filter(p => sem === "all" || p.semester === sem);
-              const hidden = Math.max(0, selected.n - list.length);
-              const SEM = { fall: "Fall", spring: "Spring", double: "Double diplôme" };
-              return (
-                <div style={{ ...card, padding: "18px 20px", marginTop: 10 }}>
-                  <p style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 500, color: T.text }}>{selected.city} <span style={{ color: T.muted, fontWeight: 400 }}>· {selected.country}</span></p>
-                  <p style={{ margin: "0 0 12px", fontSize: 14, color: T.muted }}>{selected.n} étudiant{selected.n > 1 ? "s" : ""}{sem !== "all" ? " ce semestre" : ""}</p>
-                  {!token ? (
-                    <p style={{ margin: 0, fontSize: 14, color: T.muted }}>
-                      {onLogin
-                        ? <><button onClick={onLogin} style={{ background: "none", border: "none", padding: 0, fontSize: 14, color: T.text, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}>Connecte-toi</button> pour voir qui part dans cette ville.</>
-                        : "Connecte-toi pour voir qui part dans cette ville."}
-                    </p>
-                  ) : people === null ? (
-                    <p style={{ margin: 0, fontSize: 14, color: T.faint }}>Chargement…</p>
-                  ) : (
-                    <>
-                      {list.map((p, i) => (
-                        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "10px 0", borderTop: `1px solid ${T.border}`, fontSize: 14 }}>
-                          <span style={{ color: T.text }}>{p.name}{p.me && <span style={{ color: T.muted }}> (toi)</span>}</span>
-                          <span style={{ color: T.muted, textAlign: "right", minWidth: 0 }}>{p.tripType === "internship" ? `Stage · ${p.school}` : p.tripType === "freemover" ? `Freemover · ${p.school}` : p.school}{p.semester && SEM[p.semester] ? ` · ${p.tripType && p.tripType !== "exchange" && p.semester === "double" ? "Année complète" : SEM[p.semester]}` : ""}</span>
-                        </div>
-                      ))}
-                      {hidden > 0 && <p style={{ margin: "10px 0 0", fontSize: 13, color: T.faint }}>{hidden === selected.n ? "Personne ne s'affiche ici." : `+ ${hidden} qui ne s'affiche${hidden > 1 ? "nt" : ""} pas sur la carte.`}</p>}
-                    </>
-                  )}
-                </div>
-              );
-            })()}
+            {selected && renderPanel()}
 
             <p style={{ margin: "8px 0 0", fontSize: 12, color: T.faint }}>
               Glisse pour te déplacer · molette, pincement ou double-clic pour zoomer
