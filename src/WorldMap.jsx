@@ -352,11 +352,11 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
                 ))}
               </div>
             </div>
-            <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
-              <Suspense fallback={<p style={{ textAlign: "center", marginTop: 80, color: T.muted, fontSize: 14 }}>Chargement du globe…</p>}>
+            <div style={{ position: "relative", flex: 1, minHeight: 0, background: "radial-gradient(ellipse at 50% 45%, #0b2a4a 0%, #001931 55%, #000a14 100%)" }}>
+              <Suspense fallback={<p style={{ textAlign: "center", marginTop: 80, color: "rgba(255,255,255,0.6)", fontSize: 14 }}>Chargement du globe…</p>}>
                 <Globe cities={globeCities} isMine={isMine} selected={globeSelected} onSelect={setSelected} />
               </Suspense>
-              <p style={{ position: "absolute", left: 0, right: 0, top: 12, margin: 0, textAlign: "center", fontSize: 12, color: T.faint, pointerEvents: "none" }}>
+              <p style={{ position: "absolute", left: 0, right: 0, top: 12, margin: 0, textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.55)", pointerEvents: "none" }}>
                 Glisse pour faire tourner · molette ou pincement pour zoomer · touche une ville
               </p>
               {selected && (
