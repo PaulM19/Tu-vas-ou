@@ -3,7 +3,8 @@ import { requireUser } from "./_lib/auth.js";
 const SUPABASE_URL = "https://fckolgfthpkjmtviysba.supabase.co";
 
 // Qui part dans chaque ville. Réservé aux étudiants connectés (email emlyon vérifié).
-// Ne renvoie que le prénom, l'initiale du nom, l'école et le semestre : jamais d'email ni de numéro.
+// Ne renvoie que le prénom, l'initiale du nom (ou le nom complet si l'étudiant l'a accepté),
+// l'école et le semestre : jamais d'email ni de numéro.
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
@@ -16,8 +17,8 @@ export default async function handler(req, res) {
   });
 
   const cols = "select=email,first_name,last_name,school,city,country,semester";
-  let r = await get(`${cols}&show_on_map=eq.true&order=first_name.asc`);
-  // Colonne show_on_map pas encore créée (voir supabase/show-on-map.sql) : tout le monde est visible par défaut.
+  let r = await get(`${cols},show_full_name&show_on_map=eq.true&order=first_name.asc`);
+  // Colonnes pas encore créées (voir supabase/show-on-map.sql) : tout le monde visible, avec l'initiale seulement.
   if (!r.ok) {
     console.log("map-people: show_on_map indisponible, liste complète utilisée.", r.status);
     r = await get(`${cols}&order=first_name.asc`);
@@ -32,7 +33,7 @@ export default async function handler(req, res) {
     if (!byCity[k]) byCity[k] = { city: s.city, country: s.country, people: [] };
     const last = (s.last_name || "").trim();
     byCity[k].people.push({
-      name: `${(s.first_name || "").trim()}${last ? ` ${last[0].toUpperCase()}.` : ""}`,
+      name: `${(s.first_name || "").trim()}${!last ? "" : s.show_full_name === true ? ` ${last}` : ` ${last[0].toUpperCase()}.`}`,
       school: s.school,
       semester: s.semester,
       me: (s.email || "").toLowerCase() === cleanEmail,

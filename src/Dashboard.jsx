@@ -35,7 +35,7 @@ function departure(semester, now = new Date()) {
 const read = (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
 const write = (key, v) => { try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* stockage indisponible */ } };
 
-export default function Dashboard({ T, me, matches, StudentCard, ShareBar, ProfileForm, shareProps, go, onLogout, onDelete, onSaveProfile, onMapVisibility }) {
+export default function Dashboard({ T, me, matches, StudentCard, ShareBar, ProfileForm, shareProps, go, onLogout, onDelete, onSaveProfile, onMapSettings }) {
     const [cities, setCities] = useState(null);
     const checksKey = `tpo_checklist_${me.email}`;
     const seenKey = `tpo_seen_${me.email}`;
@@ -45,11 +45,15 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, Profi
     const showOnMap = me.showOnMap !== false;
     const [mapBusy, setMapBusy] = useState(false);
     const [mapError, setMapError] = useState("");
-    const setVisibility = async v => {
+    const showFullName = me.showFullName === true;
+    const saveMap = async patch => {
           setMapBusy(true); setMapError("");
-          try { await onMapVisibility(v); } catch { setMapError("Impossible d'enregistrer ton choix. Réessaie."); }
+          try { await onMapSettings(patch); } catch { setMapError("Impossible d'enregistrer ton choix. Réessaie."); }
           setMapBusy(false);
     };
+    const setVisibility = v => saveMap({ show: v });
+    const initialName = `${me.firstName} ${(me.lastName || "").trim().charAt(0).toUpperCase()}.`;
+    const fullName = `${me.firstName} ${me.lastName}`;
     // Message d'information sur la carte, affiché une seule fois (par appareil)
     const noticeKey = `tpo_map_notice_${me.email}`;
     const [showNotice, setShowNotice] = useState(() => !read(noticeKey, false));
@@ -132,6 +136,7 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, Profi
                     </p>
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                       <button onClick={closeNotice} style={{ padding: "9px 16px", background: T.navy, color: "#fff", border: "none", borderRadius: T.radius, fontSize: 14, cursor: "pointer" }}>J'ai compris</button>
+                      <button onClick={async () => { await saveMap({ fullName: true }); closeNotice(); }} disabled={mapBusy} style={{ padding: "9px 16px", background: T.bgCard, color: T.text, border: `1px solid ${T.borderStrong}`, borderRadius: T.radius, fontSize: 14, cursor: "pointer" }}>Afficher mon nom complet</button>
                       <button onClick={async () => { await setVisibility(false); closeNotice(); }} disabled={mapBusy} style={{ padding: "9px 16px", background: T.bgCard, color: T.text, border: `1px solid ${T.borderStrong}`, borderRadius: T.radius, fontSize: 14, cursor: "pointer" }}>Ne pas apparaître</button>
                     </div>
                   </div>
@@ -249,6 +254,15 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, Profi
                       <span style={{ display: "block", fontSize: 15, fontWeight: 500, color: T.text }}>Apparaître sur la carte</span>
                       <span style={{ display: "block", fontSize: 14, color: T.muted, lineHeight: 1.6, marginTop: 2 }}>
                         Les étudiants emlyon connectés voient ton prénom, l'initiale de ton nom, ton école et ton semestre.
+                      </span>
+                    </span>
+                  </label>
+                  <label style={{ display: "flex", alignItems: "flex-start", gap: 12, marginTop: 16, paddingTop: 16, borderTop: `1px solid ${T.border}`, cursor: mapBusy || !showOnMap ? "default" : "pointer", opacity: showOnMap ? 1 : 0.5 }}>
+                    <input type="checkbox" checked={showFullName} disabled={mapBusy || !showOnMap} onChange={e => saveMap({ fullName: e.target.checked })} style={{ width: 18, height: 18, marginTop: 2, accentColor: T.navy, cursor: "pointer", flexShrink: 0 }} />
+                    <span>
+                      <span style={{ display: "block", fontSize: 15, fontWeight: 500, color: T.text }}>Afficher mon nom de famille en entier</span>
+                      <span style={{ display: "block", fontSize: 14, color: T.muted, lineHeight: 1.6, marginTop: 2 }}>
+                        Pour qu'on te retrouve plus facilement. Tu apparais comme « {showFullName ? fullName : initialName} ».
                       </span>
                     </span>
                   </label>
