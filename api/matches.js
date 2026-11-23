@@ -52,6 +52,5 @@ const { data: schoolRows } = await sbFetch(
   .filter(s => s.email.toLowerCase() !== cleanEmail)
   .map(shape);
 
-// L'accord partenaires n'est renvoyé que pour l'étudiant lui-même, jamais pour ses matchs.
-return res.status(200).json({ student: { ...shape(me), partnerConsent: me.partner_consent === true }, matches });
+return res.status(200).json({ student: shape(me), matches });
 }
