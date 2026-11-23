@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { CITY_PHOTOS } from "./cityPhotos";
 
 // Espace personnel de l'étudiant connecté : un seul endroit, simple et lisible,
 // pour retrouver sa destination, ses matchs, sa préparation et son profil.
@@ -79,12 +80,18 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, Profi
     }, []);
 
     const dest = me.destination;
+    // « Bilbao / Madrid » et autres villes : photo libre de droits si on en a une
+    const photo = CITY_PHOTOS[dest.city] || null;
     const inCountry = useMemo(() => {
           if (!cities) return null;
           return cities.filter(c => c.country === dest.country).reduce((s, c) => s + c.count, 0) || 1;
     }, [cities, dest.country]);
 
     const doneCount = CHECKLIST.filter(([k]) => checks[k]).length;
+    // « Mon départ » : ouvert à la première visite, fermé ensuite (mémorisé sur l'appareil)
+    const departKey = `tpo_depart_seen_${me.email}`;
+    const [departOpen, setDepartOpen] = useState(() => !read(departKey, false));
+    useEffect(() => { write(departKey, true); }, [departKey]);
     const toggle = k => setChecks(c => { const n = { ...c, [k]: !c[k] }; write(checksKey, n); return n; });
     const scrollTo = id => document.getElementById(`sec-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
@@ -130,11 +137,23 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, Profi
                   </div>
                 )}
 
-                <div style={{ background: T.navy, color: "#fff", borderRadius: T.radiusLg, padding: "28px 28px 26px" }}>
-                  <p style={{ margin: "0 0 10px", fontSize: 13, color: "rgba(255,255,255,0.6)" }}>Ta destination</p>
-                  <p style={{ margin: "0 0 6px", fontFamily: T.serif, fontWeight: 600, fontSize: 30, lineHeight: 1.15 }}>{dest.city}</p>
-                  <p style={{ margin: "0 0 20px", fontSize: 15, color: "rgba(255,255,255,0.75)" }}>{dest.school}, {dest.country}</p>
+                <div style={{
+                       position: "relative", overflow: "hidden", color: "#fff", borderRadius: T.radiusLg, padding: "36px 28px 30px", minHeight: 220,
+                       backgroundColor: T.navy,
+                       // Photo de la ville sous un voile bleu marine, plus dense à gauche pour garder le texte lisible
+                       backgroundImage: photo ? `linear-gradient(90deg, rgba(0,25,49,0.92) 0%, rgba(0,25,49,0.70) 45%, rgba(0,25,49,0.30) 100%), url("${photo.src}")` : "none",
+                       backgroundSize: "cover", backgroundPosition: "center",
+                     }}>
+                  <p style={{ margin: "0 0 10px", fontSize: 13, color: "rgba(255,255,255,0.7)" }}>Ta destination</p>
+                  <p style={{ margin: "0 0 6px", fontFamily: T.serif, fontWeight: 600, fontSize: 32, lineHeight: 1.15, textShadow: "0 1px 12px rgba(0,25,49,0.4)" }}>{dest.city}</p>
+                  <p style={{ margin: "0 0 20px", fontSize: 15, color: "rgba(255,255,255,0.85)" }}>{dest.school}, {dest.country}</p>
                   <p style={{ margin: 0, fontSize: 14, color: T.gold }}>{departure(me.semester)}</p>
+                  {photo && (
+                    <a href={photo.page} target="_blank" rel="noopener noreferrer"
+                       style={{ position: "absolute", right: 12, bottom: 8, maxWidth: "60%", fontSize: 10, color: "rgba(255,255,255,0.6)", textDecoration: "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      Photo : {photo.author} · {photo.license}
+                    </a>
+                  )}
                 </div>
 
                 <p style={{ fontSize: 14, color: T.muted, margin: "20px 0 0", lineHeight: 1.7 }}>
@@ -167,12 +186,17 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, Profi
 
               {/* ── DÉPART ── */}
               <section id="sec-depart" style={section}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
-                  <h2 style={h2}>Mon départ</h2>
-                  <span style={{ fontSize: 14, color: T.muted }}>{doneCount} / {CHECKLIST.length}</span>
-                </div>
-                <p style={lead}>Les étapes à ne pas oublier. Coche-les au fur et à mesure.</p>
-                <div style={{ borderTop: `1px solid ${T.border}` }}>
+                <button onClick={() => setDepartOpen(o => !o)} aria-expanded={departOpen} aria-controls="depart-list"
+                        style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
+                  <h2 style={{ ...h2, margin: 0 }}>Mon départ</h2>
+                  <span style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 14, color: T.muted }}>
+                    {doneCount} / {CHECKLIST.length}
+                    <span aria-hidden="true" style={{ display: "inline-block", width: 9, height: 9, borderRight: `2px solid ${T.muted}`, borderBottom: `2px solid ${T.muted}`, transform: departOpen ? "rotate(225deg) translate(-2px,-2px)" : "rotate(45deg)", transition: "transform 0.2s" }} />
+                  </span>
+                </button>
+                {departOpen && <>
+                <p style={{ ...lead, marginTop: 6 }}>Les étapes à ne pas oublier. Coche-les au fur et à mesure.</p>
+                <div id="depart-list" style={{ borderTop: `1px solid ${T.border}` }}>
                   {CHECKLIST.map(([k, label]) => {
                     const on = !!checks[k];
                     return (
@@ -184,6 +208,7 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, Profi
                   })}
                 </div>
                 <p style={{ fontSize: 13, color: T.faint, margin: "12px 0 0" }}>Enregistré sur cet appareil.</p>
+                </>}
               </section>
 
               {/* ── PROFIL ── */}
