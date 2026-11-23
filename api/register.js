@@ -34,7 +34,9 @@ function shape(row) {
 export default async function handler(req, res) {
     if (req.method !== "POST") return res.status(405).end();
 
-const { firstName, lastName, whatsapp, semester, lookingFor, destination } = req.body || {};
+const { firstName, lastName, whatsapp, semester, lookingFor, destination, partnerConsent } = req.body || {};
+// Accord facultatif pour transmettre / vendre ses données aux partenaires (case décochée par défaut).
+const consent = partnerConsent === true;
 
 // Email prouvé par le code de vérification (jeton de session signé).
 const cleanEmail = requireUser(req, res);
@@ -61,10 +63,7 @@ const cleanEmail = requireUser(req, res);
         return res.status(400).json({ error: "Informations invalides." });
     }
 
-const { ok, status, data } = await sbFetch("students", {
-    method: "POST",
-    prefer: "return=representation",
-    body: JSON.stringify({
+const row = {
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         email: cleanEmail,
@@ -75,8 +74,16 @@ const { ok, status, data } = await sbFetch("students", {
         country: destination.country || null,
         looking_for: Array.isArray(lookingFor) && lookingFor.length ? lookingFor.join(",") : null,
         is_seeded: false,
-    }),
-});
+};
+const insert = body => sbFetch("students", { method: "POST", prefer: "return=representation", body: JSON.stringify(body) });
+
+let { ok, status, data } = await insert({ ...row, partner_consent: consent, partner_consent_at: consent ? new Date().toISOString() : null });
+// Si les colonnes partner_consent n'existent pas encore dans Supabase, on inscrit quand même
+// l'étudiant sans son choix (voir supabase/partner-consent.sql).
+if (!ok && data?.code === "PGRST204") {
+    console.log("Colonnes partner_consent manquantes : lance supabase/partner-consent.sql. Choix perdu pour", cleanEmail);
+    ({ ok, status, data } = await insert(row));
+}
 
 if (!ok) {
     if (status === 409) {
@@ -87,7 +94,7 @@ if (!ok) {
 }
 
 
-const student = shape(data[0]);
+const student = { ...shape(data[0]), partnerConsent: data[0].partner_consent === true };
 
 const { data: schoolRows } = await sbFetch(
     `students?select=*&school=eq.${encodeURIComponent(destination.school)}&order=created_at.asc`

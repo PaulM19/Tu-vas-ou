@@ -45,6 +45,7 @@ async function insertStudent(s, token) {
                   semester: s.semester,
                   lookingFor: s.lookingFor || [],
                   destination: s.destination,
+                  partnerConsent: s.partnerConsent === true,
           }),
     });
     if (!res.ok) {
@@ -440,7 +441,7 @@ function StudentCard({ student, isNew = false }) {
 export default function App() {
     const [screen, setScreen] = useState(() => (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("carte") ? "map" : "home"));
     const [regStep, setRegStep] = useState(1);
-    const [form, setForm] = useState({ firstName: "", lastName: "", email: "", destQuery: "", destination: null, semester: "fall", lookingFor: [], countryCode: "+33", whatsappNumber: "", consent: false });
+    const [form, setForm] = useState({ firstName: "", lastName: "", email: "", destQuery: "", destination: null, semester: "fall", lookingFor: [], countryCode: "+33", whatsappNumber: "", consent: false, partnerConsent: false });
     const [verifCode, setVerifCode] = useState("");
     const [verifError, setVerifError] = useState("");
     const [lookupEmail, setLookupEmail] = useState("");
@@ -716,6 +717,13 @@ export default function App() {
                        onChange={e => setForm(f => ({ ...f, whatsappNumber: e.target.value }))}
                        style={inputStyle} />
                 <p style={{ margin: 0, fontSize: 13, color: T.faint }}>Avec l'indicatif si ton numéro n'est pas français.</p>
+                <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", margin: "16px 0 8px", paddingTop: 20, borderTop: `1px solid ${T.border}` }}>
+                  <input type="checkbox" checked={form.partnerConsent} onChange={e => setForm(f => ({ ...f, partnerConsent: e.target.checked }))} style={{ marginTop: 3, width: 16, height: 16, flexShrink: 0, cursor: "pointer", accentColor: T.navy }} />
+                  <span style={{ fontSize: 13, color: T.muted, lineHeight: 1.6 }}>
+                    <span style={{ color: T.text }}>Facultatif.</span> J'accepte que mes informations (nom, email, WhatsApp, destination, semestre) soient transmises ou vendues à des partenaires : agences de location de logement, location de scooters, restaurants, bars et boîtes de nuit, pour recevoir leurs offres. Je peux retirer mon accord à tout moment dans mon espace.{" "}
+                    <span onClick={e => { e.preventDefault(); go("privacy"); }} style={{ color: T.text, textDecoration: "underline", cursor: "pointer" }}>En savoir plus</span>
+                  </span>
+                </label>
                 {errText(error)}
                 <button onClick={() => { if (!form.whatsappNumber.trim()) { setError("Entre ton numéro WhatsApp pour continuer."); return; } handleSubmit(); }} disabled={loading}
                         style={{ ...btnPrimary(!!form.whatsappNumber.trim()), cursor: "pointer", opacity: loading ? 0.7 : 1 }}>
@@ -770,6 +778,11 @@ export default function App() {
           <Page go={go} registered={registered} width={1040}>
             <Dashboard T={T} me={registered} matches={matches} go={go}
                        StudentCard={StudentCard} ShareBar={ShareBar}
+                       onPartnerConsent={async consent => {
+                         const res = await fetch("/api/partner-consent", { method: "POST", headers: authHeaders(token), body: JSON.stringify({ consent }) });
+                         if (!res.ok) throw new Error();
+                         setRegistered(r => ({ ...r, partnerConsent: consent }));
+                       }}
                        shareProps={{ url: SITE_URL, message: destinationMessage(registered.destination, registered.semester), title: "Plus on est d'inscrits, plus tu as de matchs", subtitle: "Envoie le lien dans ton groupe de promo." }}
                        onLogout={() => { saveToken(null); setToken(null); setRegistered(null); setMatches([]); setScreen("home"); window.scrollTo(0, 0); }}
                        onDelete={async () => {
@@ -803,11 +816,12 @@ if (screen === "map") {
             { title: "Qui sommes-nous ?", content: "Tu pars où en échange ? est une application créée par des étudiants emlyon pour les étudiants emlyon qui partent en échange académique. Ce projet n'est pas affilié officiellement à emlyon business school." },
             { title: "Quelles données collectons-nous ?", content: "Lors de ton inscription, nous collectons : ton prénom et ton nom, ton adresse email @edu.em-lyon.com, ta destination d'échange (école, ville, pays), ton semestre, ce que tu recherches (coloc, amis…) et ton numéro WhatsApp." },
             { title: "Pourquoi collectons-nous ces données ?", content: "Pour deux raisons. D'abord, te mettre en relation avec les autres étudiants emlyon qui partent au même endroit que toi. Ensuite, t'aider à t'installer dans ta ville : notre équipe s'appuie sur l'expérience des anciens étudiants partis aux mêmes endroits pour repérer les meilleurs bons plans de chaque ville (logement, transports, démarches, vie sur place). Ta destination, ton semestre, ce que tu recherches et tes coordonnées peuvent être utilisés pour te recommander ces bons plans." },
-            { title: "Qui peut voir mes données ?", content: "Les étudiants emlyon inscrits qui partent dans la même école que toi voient ton nom, ton semestre, ce que tu recherches et ton numéro WhatsApp. L'équipe du projet y a accès pour t'envoyer des recommandations adaptées à ta destination. Ton email n'est jamais affiché aux autres étudiants. Tes données ne sont ni vendues ni transmises à des tiers." },
+            { title: "Qui peut voir mes données ?", content: "Les étudiants emlyon inscrits qui partent dans la même école que toi voient ton nom, ton semestre, ce que tu recherches et ton numéro WhatsApp. L'équipe du projet y a accès pour t'envoyer des recommandations adaptées à ta destination. Ton email n'est jamais affiché aux autres étudiants. Tes données ne sont transmises à des partenaires que si tu l'as accepté (voir ci-dessous)." },
+            { title: "Transmission et vente de tes données à des partenaires", content: "Uniquement si tu coches la case facultative prévue à l'inscription (ou si tu donnes ton accord plus tard dans ton espace), tes informations peuvent être transmises ou vendues à nos partenaires pour qu'ils te proposent leurs offres. Données concernées : ton nom, ton email, ton numéro WhatsApp, ta destination et ton semestre. Partenaires concernés : agences de location de logement, loueurs de scooters, restaurants, bars et boîtes de nuit, dans ta ville d'échange. Si tu ne coches pas cette case, rien n'est transmis, et tu as accès au site exactement de la même façon. Tu peux retirer ton accord à tout moment dans ton espace (partie « Mon profil ») : nous arrêtons alors toute nouvelle transmission. Les données déjà transmises restent chez le partenaire concerné ; tu peux lui demander directement de les supprimer, ou nous écrire pour que nous le fassions." },
             { title: "Ne plus recevoir de bons plans", content: "Tu peux à tout moment demander à ne plus recevoir de recommandations en écrivant à monzatpaul@gmail.com. Tu restes inscrit et tu gardes l'accès à tes matchs." },
             { title: "Combien de temps garde-t-on tes données ?", content: "Tes données sont conservées jusqu'à la fin de l'année académique 2026-2027, ou jusqu'à ce que tu demandes leur suppression." },
-            { title: "Tes droits (RGPD)", content: "Tu as le droit d'accéder à tes données, de les corriger, de t'opposer à leur utilisation pour les recommandations et de les supprimer à tout moment, via « Supprimer mon inscription » dans ton espace. Pour toute question, contacte monzatpaul@gmail.com." },
-            { title: "Sécurité", content: "Les données sont stockées sur Supabase, une infrastructure sécurisée hébergée en Europe. Ton numéro WhatsApp n'est visible que par les étudiants qui partent dans la même école que toi et par l'équipe du projet." },
+            { title: "Tes droits (RGPD)", content: "Tu as le droit d'accéder à tes données, de les corriger, de t'opposer à leur utilisation pour les recommandations, de retirer ton accord pour les partenaires et de les supprimer à tout moment, via « Supprimer mon inscription » dans ton espace. Pour toute question, contacte monzatpaul@gmail.com." },
+            { title: "Sécurité", content: "Les données sont stockées sur Supabase, une infrastructure sécurisée hébergée en Europe. Ton numéro WhatsApp n'est visible que par les étudiants qui partent dans la même école que toi, par l'équipe du projet et, seulement si tu l'as accepté, par nos partenaires." },
                     ].map(({ title, content }) => (
                                 <div key={title} style={{ marginBottom: 32 }}>
                                             <h2 style={{ fontSize: 16, fontWeight: 600, color: T.text, margin: "0 0 6px" }}>{title}</h2>

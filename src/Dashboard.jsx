@@ -34,12 +34,19 @@ function departure(semester, now = new Date()) {
 const read = (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
 const write = (key, v) => { try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* stockage indisponible */ } };
 
-export default function Dashboard({ T, me, matches, StudentCard, ShareBar, shareProps, go, onLogout, onDelete }) {
+export default function Dashboard({ T, me, matches, StudentCard, ShareBar, shareProps, go, onLogout, onDelete, onPartnerConsent }) {
     const [cities, setCities] = useState(null);
     const checksKey = `tpo_checklist_${me.email}`;
     const seenKey = `tpo_seen_${me.email}`;
     const [checks, setChecks] = useState(() => read(checksKey, {}));
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const [consentBusy, setConsentBusy] = useState(false);
+    const [consentError, setConsentError] = useState("");
+    const changeConsent = async v => {
+          setConsentBusy(true); setConsentError("");
+          try { await onPartnerConsent(v); } catch { setConsentError("Impossible d'enregistrer ton choix. Réessaie."); }
+          setConsentBusy(false);
+    };
     const [active, setActive] = useState("apercu");
     // Calculé une seule fois à l'ouverture : les matchs absents de la dernière visite sont « nouveaux »
     const [newIds] = useState(() => {
@@ -177,6 +184,20 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, share
                     </div>
                   ))}
                 </dl>
+
+                <div style={{ marginTop: 32, padding: "18px 20px", border: `1px solid ${T.border}`, borderRadius: T.radiusLg }}>
+                  <p style={{ margin: "0 0 6px", fontSize: 15, fontWeight: 500, color: T.text }}>Offres de nos partenaires</p>
+                  <p style={{ margin: "0 0 14px", fontSize: 14, color: T.muted, lineHeight: 1.6 }}>
+                    {me.partnerConsent
+                      ? "Tu as accepté que tes informations soient transmises ou vendues à nos partenaires (logement, scooters, restaurants, bars, boîtes de nuit) pour recevoir leurs offres."
+                      : "Tes informations ne sont pas transmises à nos partenaires (logement, scooters, restaurants, bars, boîtes de nuit)."}
+                  </p>
+                  <button onClick={() => changeConsent(!me.partnerConsent)} disabled={consentBusy}
+                          style={{ padding: "9px 14px", background: T.bgCard, color: T.text, border: `1px solid ${T.borderStrong}`, borderRadius: T.radius, fontSize: 14, cursor: "pointer", opacity: consentBusy ? 0.6 : 1 }}>
+                    {consentBusy ? "Enregistrement…" : me.partnerConsent ? "Retirer mon accord" : "Recevoir leurs offres"}
+                  </button>
+                  {consentError && <p style={{ margin: "10px 0 0", fontSize: 14, color: T.red }}>{consentError}</p>}
+                </div>
 
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 24, marginTop: 32 }}>
                   <button onClick={onLogout} style={textBtn}>Se déconnecter</button>
