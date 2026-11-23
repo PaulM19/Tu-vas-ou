@@ -18,7 +18,15 @@ async function sbFetch(path, options = {}) {
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).end();
 
-const { school } = req.query;
+const { school, city, country } = req.query;
+
+// Aperçu à l'inscription pour un stage / freemover : combien d'étudiants dans cette ville
+if (!school && city) {
+  const { data } = await sbFetch(
+    `students?select=first_name&city=eq.${encodeURIComponent(city)}&country=eq.${encodeURIComponent(country || "")}`
+    );
+  return res.status(200).json({ count: (data || []).length, initials: [] });
+}
 
 if (school) {
   const { data } = await sbFetch(

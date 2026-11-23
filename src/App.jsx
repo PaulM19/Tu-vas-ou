@@ -14,6 +14,12 @@ async function getDestinationPreview(school) {
     return res.ok ? await res.json() : { count: 0, initials: [] };
 }
 
+// Stage / freemover : combien d'étudiants emlyon dans la ville
+async function getCityPreview(city, country) {
+    const res = await fetch(`/api/stats?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}`);
+    return res.ok ? await res.json() : { count: 0, initials: [] };
+}
+
 // Jeton de session (renvoyé par /api/verify-code) gardé sur l'appareil pour rester connecté.
 const TOKEN_KEY = "tpo_session";
 function loadToken() { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } }
@@ -44,7 +50,8 @@ async function insertStudent(s, token) {
                   whatsapp: s.whatsappNumber?.trim() || null,
                   semester: s.semester,
                   lookingFor: s.lookingFor || [],
-                  destination: s.destination,
+                  tripType: s.tripType,
+                  destination: pickedDestination(s),
           }),
     });
     if (!res.ok) {
@@ -407,13 +414,92 @@ function SemCard({ label, sub, active, onClick }) {
         );
 }
 
+// ── Type de départ : échange, freemover ou stage ──
+const TRIP_OPTIONS = [
+    { val: "exchange", label: "Échange", sub: "Université partenaire" },
+    { val: "freemover", label: "Freemover", sub: "Université hors accords" },
+    { val: "internship", label: "Stage", sub: "En entreprise" },
+];
+const TRIP_LABELS = { exchange: "Échange", freemover: "Freemover", internship: "Stage" };
+const COUNTRIES = [...new Set(DESTINATIONS.map(d => d.country))].sort((a, b) => a.localeCompare(b, "fr"));
+
+// Semestre : « Double diplôme » n'a de sens que pour un échange
+function semesterOptions(tripType) {
+    return tripType === "exchange" ? SEMESTER_OPTIONS
+          : SEMESTER_OPTIONS.map(o => (o.val === "double" ? { ...o, label: "Année complète", sub: "Sept – Juin" } : o));
+}
+function semLabel(semester, tripType) {
+    if (semester === "double" && tripType && tripType !== "exchange") return "Année complète";
+    return SEMESTER_LABELS[semester] || semester;
+}
+
+// Destination choisie dans le formulaire (ou null si incomplète)
+function pickedDestination(f) {
+    if (f.tripType === "exchange") return f.destination;
+    const school = f.orgName.trim(), city = f.city.trim(), country = f.country.trim();
+    return school && city && country ? { school, city, country } : null;
+}
+// État de départ du sélecteur, à partir d'un profil existant (ou vide)
+function pickerState(me) {
+    const t = me?.tripType || "exchange", d = me?.destination;
+    return {
+          tripType: t,
+          destQuery: t === "exchange" && d ? `${d.school} – ${d.city}` : "", destination: t === "exchange" ? d || null : null,
+          orgName: t !== "exchange" ? d?.school || "" : "", city: t !== "exchange" ? d?.city || "" : "", country: t !== "exchange" ? d?.country || "" : "",
+    };
+}
+
+function DestinationPicker({ value: f, onChange, onExchangePicked, onPlaceChange }) {
+    const label = { display: "block", fontSize: 14, fontWeight: 500, color: T.text, margin: "0 0 8px" };
+    return (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8 }}>
+              {TRIP_OPTIONS.map(o => <SemCard key={o.val} {...o} active={f.tripType === o.val} onClick={() => onChange({ tripType: o.val })} />)}
+            </div>
+            {f.tripType === "exchange" ? (
+              <div>
+                <label style={label}>Université partenaire</label>
+                <DestSearch value={f.destQuery} onChange={v => onChange({ destQuery: v, destination: null })}
+                            onSelect={d => { onChange({ destQuery: `${d.school} – ${d.city}`, destination: d }); onExchangePicked?.(d); }} />
+                <p style={{ margin: "6px 0 0", fontSize: 13, color: T.faint }}>Ton université n'est pas dans la liste ? Choisis « Freemover ».</p>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label style={label}>{f.tripType === "internship" ? "Entreprise" : "Université"}</label>
+                  <input value={f.orgName} onChange={e => onChange({ orgName: e.target.value })} style={inputStyle}
+                         placeholder={f.tripType === "internship" ? "Nom de l'entreprise" : "Nom de l'université"} />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div>
+                    <label style={label}>Ville</label>
+                    <input value={f.city} onChange={e => onChange({ city: e.target.value })} onBlur={() => onPlaceChange?.(f)} style={inputStyle} placeholder="Ex : Dubaï" />
+                  </div>
+                  <div>
+                    <label style={label}>Pays</label>
+                    <input value={f.country} list="tpo-countries" onChange={e => onChange({ country: e.target.value })} onBlur={() => onPlaceChange?.(f)} style={inputStyle} placeholder="Ex : Émirats arabes unis" />
+                    <datalist id="tpo-countries">{COUNTRIES.map(c => <option key={c} value={c} />)}</datalist>
+                  </div>
+                </div>
+                <p style={{ margin: "-8px 0 0", fontSize: 13, color: T.faint }}>
+                  Tes matchs : les étudiants emlyon dans la même ville que toi{f.tripType === "freemover" ? " ou dans la même université" : ""}.
+                </p>
+              </>
+            )}
+          </div>
+        );
+}
+
 const LOOKING_OPTIONS = [["coloc", "Une coloc"], ["amis", "Des amis"], ["conseils", "Des conseils"], ["activites", "Des activités"]];
 const LOOKING_LABELS = { coloc: "Coloc", amis: "Amis", conseils: "Conseils", activites: "Activités" };
 
 // Un match : une ligne simple (initiales, nom, infos, bouton de contact)
 function StudentCard({ student, isNew = false }) {
     const initials = (student.firstName[0] + student.lastName[0]).toUpperCase();
-    const details = [SEMESTER_LABELS[student.semester] || student.semester, ...(student.lookingFor || []).map(lf => LOOKING_LABELS[lf] || lf)].filter(Boolean).join(" · ");
+    const t = student.tripType || "exchange";
+    // Pour un stage ou un freemover, on précise le type et l'organisation (les matchs peuvent venir d'une autre école de la ville)
+    const where = t === "exchange" ? student.destination.school : `${TRIP_LABELS[t]} · ${student.destination.school}`;
+    const details = [where, semLabel(student.semester, t), ...(student.lookingFor || []).map(lf => LOOKING_LABELS[lf] || lf)].filter(Boolean).join(" · ");
     const contact = student.whatsapp
           ? { href: `https://wa.me/${student.whatsapp.replace(/\D/g, "")}`, label: "WhatsApp", ext: true }
           : student.email ? { href: `mailto:${student.email}?subject=${encodeURIComponent("Tu pars où en échange ? — " + student.destination.school)}`, label: "Email" } : null;
@@ -443,7 +529,7 @@ function ProfileForm({ me, onSave, onCancel }) {
     const [f, setF] = useState({
           firstName: me.firstName, lastName: me.lastName, whatsapp: me.whatsapp || "",
           semester: me.semester || "fall", lookingFor: me.lookingFor || [],
-          destQuery: `${d.school} – ${d.city}`, destination: d,
+          ...pickerState(me),
     });
     const [saving, setSaving] = useState(false);
     const [err, setErr] = useState("");
@@ -454,7 +540,7 @@ function ProfileForm({ me, onSave, onCancel }) {
           setErr("");
           if (!f.firstName.trim() || !f.lastName.trim()) return setErr("Entre ton prénom et ton nom.");
           if (!f.whatsapp.trim()) return setErr("Entre ton numéro WhatsApp.");
-          if (!f.destination) return setErr("Choisis ta destination dans la liste.");
+          if (!pickedDestination(f)) return setErr(f.tripType === "exchange" ? "Choisis ta destination dans la liste." : "Indique l'université ou l'entreprise, la ville et le pays.");
           setSaving(true);
           try { await onSave(f); }
           catch (e) { setErr(e.message || "Impossible d'enregistrer. Réessaie."); setSaving(false); }
@@ -477,15 +563,15 @@ function ProfileForm({ me, onSave, onCancel }) {
             </div>
             <div>
               <label style={label}>Destination</label>
-              <DestSearch value={f.destQuery} onChange={v => set({ destQuery: v, destination: null })} onSelect={x => set({ destQuery: `${x.school} – ${x.city}`, destination: x })} />
-              {f.destination && f.destination.school !== d.school && (
-                <p style={{ margin: "6px 0 0", fontSize: 13, color: T.muted }}>Tes matchs seront mis à jour pour cette nouvelle école.</p>
+              <DestinationPicker value={f} onChange={patch => set({ ...patch, ...(patch.tripType && patch.tripType !== f.tripType && f.semester === "double" ? { semester: "fall" } : {}) })} />
+              {pickedDestination(f) && (pickedDestination(f).school !== d.school || pickedDestination(f).city !== d.city) && (
+                <p style={{ margin: "6px 0 0", fontSize: 13, color: T.muted }}>Tes matchs seront mis à jour pour cette nouvelle destination.</p>
               )}
             </div>
             <div>
-              <label style={label}>Semestre</label>
+              <label style={label}>{f.tripType === "internship" ? "Période" : "Semestre"}</label>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8 }}>
-                {SEMESTER_OPTIONS.map(o => <SemCard key={o.val} {...o} active={f.semester === o.val} onClick={() => set({ semester: o.val })} />)}
+                {semesterOptions(f.tripType).map(o => <SemCard key={o.val} {...o} active={f.semester === o.val} onClick={() => set({ semester: o.val })} />)}
               </div>
             </div>
             <div>
@@ -514,7 +600,7 @@ function ProfileForm({ me, onSave, onCancel }) {
 export default function App() {
     const [screen, setScreen] = useState(() => (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("carte") ? "map" : "home"));
     const [regStep, setRegStep] = useState(1);
-    const [form, setForm] = useState({ firstName: "", lastName: "", email: "", destQuery: "", destination: null, semester: "fall", lookingFor: [], countryCode: "+33", whatsappNumber: "", consent: false });
+    const [form, setForm] = useState({ firstName: "", lastName: "", email: "", ...pickerState(null), semester: "fall", lookingFor: [], countryCode: "+33", whatsappNumber: "", consent: false });
     const [verifCode, setVerifCode] = useState("");
     const [verifError, setVerifError] = useState("");
     const [lookupEmail, setLookupEmail] = useState("");
@@ -543,7 +629,7 @@ export default function App() {
   }, []);
 
   function step1Valid() { return form.firstName.trim() && form.lastName.trim() && form.email.endsWith(DOMAIN) && form.consent; }
-    function step2Valid() { return !!form.destination; }
+    function step2Valid() { return !!pickedDestination(form); }
 
   async function sendVerifCode() {
         setLoading(true); setVerifError("");
@@ -713,7 +799,7 @@ export default function App() {
                 <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", margin: "8px 0" }}>
                   <input type="checkbox" checked={form.consent} onChange={e => setForm(f => ({ ...f, consent: e.target.checked }))} style={{ marginTop: 3, width: 16, height: 16, flexShrink: 0, cursor: "pointer", accentColor: T.navy }} />
                   <span style={{ fontSize: 13, color: T.muted, lineHeight: 1.6 }}>
-                    J'accepte que mes coordonnées soient partagées avec les étudiants emlyon qui partent dans la même école, que mon prénom, mon école et mon semestre apparaissent sur la carte pour les étudiants connectés, et que l'équipe utilise mes informations pour me recommander les bons plans de ma ville.{" "}
+                    J'accepte que mes coordonnées soient partagées avec mes matchs (étudiants emlyon de la même université ou entreprise, ou de la même ville pour un stage ou un freemover), que mon prénom, mon université ou entreprise et mon semestre apparaissent sur la carte pour les étudiants connectés, et que l'équipe utilise mes informations pour me recommander les bons plans de ma ville.{" "}
                     <span onClick={e => { e.preventDefault(); go("privacy"); }} style={{ color: T.text, textDecoration: "underline", cursor: "pointer" }}>En savoir plus</span>
                   </span>
                 </label>
@@ -751,22 +837,25 @@ export default function App() {
 
           {regStep === 3 && (
             <div>
-              {stepHeader(3, "Tu pars où ?", "Tape le pays, la ville ou le nom de l'école.")}
+              {stepHeader(3, "Tu pars où ?", "En échange, en freemover ou en stage.")}
               <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
                 <div>
-                  <DestSearch value={form.destQuery} onChange={v => setForm(f => ({ ...f, destQuery: v, destination: null }))} onSelect={d => { setForm(f => ({ ...f, destQuery: `${d.school} – ${d.city}`, destination: d })); getDestinationPreview(d.school).then(setDestPreview).catch(() => setDestPreview({ count: 0, initials: [] })); }} />
-                  {form.destination && (
+                  <DestinationPicker value={form}
+                    onChange={patch => { setForm(f => ({ ...f, ...patch, ...(patch.tripType && patch.tripType !== f.tripType && f.semester === "double" ? { semester: "fall" } : {}) })); if (patch.tripType) setDestPreview({ count: 0, initials: [] }); }}
+                    onExchangePicked={d => getDestinationPreview(d.school).then(setDestPreview).catch(() => setDestPreview({ count: 0, initials: [] }))}
+                    onPlaceChange={f => { if (f.city.trim() && f.country.trim()) getCityPreview(f.city.trim(), f.country.trim()).then(setDestPreview).catch(() => {}); }} />
+                  {pickedDestination(form) && (form.tripType === "exchange" || destPreview.count > 0) && (
                     <p style={{ margin: "10px 0 0", fontSize: 14, color: destPreview.count > 0 ? T.green : T.muted }}>
                       {destPreview.count > 0
-                        ? `${destPreview.count} étudiant${destPreview.count > 1 ? "s" : ""} emlyon ${destPreview.count > 1 ? "y sont" : "y est"} déjà inscrit${destPreview.count > 1 ? "s" : ""}.`
+                        ? `${destPreview.count} étudiant${destPreview.count > 1 ? "s" : ""} emlyon ${destPreview.count > 1 ? "y sont" : "y est"} déjà inscrit${destPreview.count > 1 ? "s" : ""}${form.tripType === "exchange" ? "" : ` à ${form.city.trim()}`}.`
                         : "Tu es le premier pour cette destination."}
                     </p>
                   )}
                 </div>
                 <div>
-                  <p style={{ fontSize: 14, fontWeight: 500, color: T.text, margin: "0 0 12px" }}>Semestre</p>
+                  <p style={{ fontSize: 14, fontWeight: 500, color: T.text, margin: "0 0 12px" }}>{form.tripType === "internship" ? "Période" : "Semestre"}</p>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8 }}>
-                    {SEMESTER_OPTIONS.map(o => (
+                    {semesterOptions(form.tripType).map(o => (
                       <SemCard key={o.val} {...o} active={form.semester === o.val} onClick={() => setForm(f => ({ ...f, semester: o.val }))} />
                     ))}
                   </div>
@@ -857,7 +946,7 @@ export default function App() {
                        onMapSettings={saveMapSettings}
                        onSaveProfile={async f => {
                          const res = await fetch("/api/update-profile", { method: "POST", headers: authHeaders(token),
-                           body: JSON.stringify({ firstName: f.firstName, lastName: f.lastName, whatsapp: f.whatsapp, semester: f.semester, lookingFor: f.lookingFor, destination: f.destination }) });
+                           body: JSON.stringify({ firstName: f.firstName, lastName: f.lastName, whatsapp: f.whatsapp, semester: f.semester, lookingFor: f.lookingFor, tripType: f.tripType, destination: pickedDestination(f) }) });
                          const data = await res.json().catch(() => ({}));
                          if (!res.ok) throw new Error(data.error || "Impossible d'enregistrer. Réessaie.");
                          setRegistered(data.student);
@@ -894,14 +983,14 @@ if (screen === "map") {
                         <p style={{ fontSize: 14, color: T.faint, margin: "0 0 48px" }}>Dernière mise à jour : novembre 2026</p>
                   {[
             { title: "Qui sommes-nous ?", content: "Tu pars où en échange ? est une application créée par des étudiants emlyon pour les étudiants emlyon qui partent en échange académique. Ce projet n'est pas affilié officiellement à emlyon business school." },
-            { title: "Quelles données collectons-nous ?", content: "Lors de ton inscription, nous collectons : ton prénom et ton nom, ton adresse email @edu.em-lyon.com, ta destination d'échange (école, ville, pays), ton semestre, ce que tu recherches (coloc, amis…) et ton numéro WhatsApp." },
+            { title: "Quelles données collectons-nous ?", content: "Lors de ton inscription, nous collectons : ton prénom et ton nom, ton adresse email @edu.em-lyon.com, le type de départ (échange, freemover ou stage), ta destination (université ou entreprise, ville, pays), ton semestre ou ta période, ce que tu recherches (coloc, amis…) et ton numéro WhatsApp. Pour un stage ou un freemover, nous enregistrons aussi les coordonnées approximatives de la ville, pour la placer sur la carte." },
             { title: "Pourquoi collectons-nous ces données ?", content: "Pour deux raisons. D'abord, te mettre en relation avec les autres étudiants emlyon qui partent au même endroit que toi. Ensuite, t'aider à t'installer dans ta ville : notre équipe s'appuie sur l'expérience des anciens étudiants partis aux mêmes endroits pour repérer les meilleurs bons plans de chaque ville (logement, transports, démarches, vie sur place). Ta destination, ton semestre, ce que tu recherches et tes coordonnées peuvent être utilisés pour te recommander ces bons plans." },
-            { title: "Qui peut voir mes données ?", content: "Les étudiants emlyon inscrits qui partent dans la même école que toi voient ton nom, ton semestre, ce que tu recherches et ton numéro WhatsApp. Tous les étudiants emlyon connectés peuvent voir sur la carte ton prénom, l'initiale de ton nom, ton école et ton semestre (voir ci-dessous). L'équipe du projet y a accès pour t'envoyer des recommandations adaptées à ta destination. Ton email n'est jamais affiché aux autres étudiants. Tes données ne sont ni vendues ni transmises à des tiers." },
-            { title: "La carte de la promo", content: "La carte montre où partent les étudiants. Les visiteurs non connectés ne voient que le nombre d'étudiants par ville. Les étudiants emlyon connectés (adresse vérifiée par un code envoyé par email) peuvent cliquer sur une ville pour voir qui y part : prénom, initiale du nom, école et semestre. Ton nom de famille complet n'apparaît que si tu coches « Afficher mon nom de famille en entier » dans ton espace. Ton email et ton numéro WhatsApp n'y apparaissent jamais. Tu es visible par défaut, et tu peux te retirer de la carte ou revenir à l'initiale à tout moment dans ton espace (partie « Mon profil »)." },
+            { title: "Qui peut voir mes données ?", content: "Tes matchs voient ton nom, ta destination, ton semestre, ce que tu recherches et ton numéro WhatsApp. Tes matchs sont les étudiants emlyon inscrits qui vont dans la même université (ou la même entreprise) que toi, ainsi que ceux qui sont dans la même ville quand l'un de vous est en stage ou freemover. Tous les étudiants emlyon connectés peuvent voir sur la carte ton prénom, l'initiale de ton nom, ton école et ton semestre (voir ci-dessous). L'équipe du projet y a accès pour t'envoyer des recommandations adaptées à ta destination. Ton email n'est jamais affiché aux autres étudiants. Tes données ne sont ni vendues ni transmises à des tiers." },
+            { title: "La carte de la promo", content: "La carte montre où partent les étudiants. Les visiteurs non connectés ne voient que le nombre d'étudiants par ville. Les étudiants emlyon connectés (adresse vérifiée par un code envoyé par email) peuvent cliquer sur une ville pour voir qui y part : prénom, initiale du nom, université ou entreprise, type de départ et semestre. Ton nom de famille complet n'apparaît que si tu coches « Afficher mon nom de famille en entier » dans ton espace. Ton email et ton numéro WhatsApp n'y apparaissent jamais. Tu es visible par défaut, et tu peux te retirer de la carte ou revenir à l'initiale à tout moment dans ton espace (partie « Mon profil »)." },
             { title: "Ne plus recevoir de bons plans", content: "Tu peux à tout moment demander à ne plus recevoir de recommandations en écrivant à monzatpaul@gmail.com. Tu restes inscrit et tu gardes l'accès à tes matchs." },
             { title: "Combien de temps garde-t-on tes données ?", content: "Tes données sont conservées jusqu'à la fin de l'année académique 2026-2027, ou jusqu'à ce que tu demandes leur suppression." },
             { title: "Tes droits (RGPD)", content: "Tu as le droit d'accéder à tes données, de les corriger, de t'opposer à leur utilisation pour les recommandations, de te retirer de la carte et de les supprimer à tout moment, via « Supprimer mon inscription » dans ton espace. Pour toute question, contacte monzatpaul@gmail.com." },
-            { title: "Sécurité", content: "Les données sont stockées sur Supabase, une infrastructure sécurisée hébergée en Europe. Ton numéro WhatsApp n'est visible que par les étudiants qui partent dans la même école que toi et par l'équipe du projet." },
+            { title: "Sécurité", content: "Les données sont stockées sur Supabase, une infrastructure sécurisée hébergée en Europe. Ton numéro WhatsApp n'est visible que par tes matchs et par l'équipe du projet. Pour placer une ville de stage ou de freemover sur la carte, seuls le nom de la ville et du pays sont envoyés au service de cartographie OpenStreetMap, sans aucune information sur toi." },
                     ].map(({ title, content }) => (
                                 <div key={title} style={{ marginBottom: 32 }}>
                                             <h2 style={{ fontSize: 16, fontWeight: 600, color: T.text, margin: "0 0 6px" }}>{title}</h2>

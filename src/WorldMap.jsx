@@ -7,6 +7,29 @@ import { ShareBar, SITE_URL, MAP_MESSAGE } from "./share";
 // (28 villes sur 58 au 14/10/2026). L'étudiant connecté voit toujours sa propre destination.
 const MIN_SHOW = 1;
 
+// Projection « Natural Earth », la même que celle du fond de carte (mapData.js) :
+// permet de placer une ville hors liste des partenaires (stage, freemover) à partir de sa latitude / longitude.
+function project(lat, lng) {
+  const p = (lat * Math.PI) / 180, l = (lng * Math.PI) / 180, p2 = p * p, p4 = p2 * p2;
+  const x = l * (0.8707 - 0.131979 * p2 + p4 * (-0.013791 + p4 * (0.003971 * p2 - 0.001529 * p4)));
+  const y = p * (1.007226 + p2 * (0.015085 + p4 * (-0.044475 + 0.028874 * p2 - 0.005916 * p4)));
+  return [500 + 185 * x, 255.07 - 185 * y];
+}
+// Continent approximatif à partir des coordonnées (pour la répartition « Par continent »)
+function continentOf(lat, lng) {
+  if (lng < -30) return lat > 13 ? "Amérique du Nord" : "Amérique du Sud";
+  if (lat < -10 && lng > 110) return "Océanie";
+  if (lat >= 35 && lng < 60) return "Europe";
+  if (lng < 52 && lat < 35) return lng > 34 && lat > 12 ? "Asie" : "Afrique";
+  return "Asie";
+}
+// Position d'une ville : liste des partenaires, sinon coordonnées enregistrées
+export function cityPos(c) {
+  if (CITY_POS[c.city]) return CITY_POS[c.city];
+  if (c.lat != null && c.lng != null) return [...project(c.lat, c.lng), continentOf(c.lat, c.lng)];
+  return null;
+}
+
 const RED = "#E2001A"; // rouge emlyon
 const MINE = "#001931"; // bleu marine emlyon : couleur de "ta destination"
 const LAND = "#e4dfd7";
@@ -179,7 +202,7 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
     () =>
       (data?.cities || [])
         .map(c => ({ ...c, n: sem === "all" ? c.count : c.bySem?.[sem] || 0 }))
-        .filter(c => CITY_POS[c.city] && (c.n >= MIN_SHOW || (isMine(c) && c.n > 0)))
+        .filter(c => cityPos(c) && (c.n >= MIN_SHOW || (isMine(c) && c.n > 0)))
         .sort((a, b) => b.n - a.n),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [data, sem, myDest?.city, myDest?.country]
@@ -194,7 +217,7 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
   const continents = useMemo(() => {
     const acc = {};
     for (const c of cities) {
-      const cont = CITY_POS[c.city][2];
+      const cont = cityPos(c)[2];
       acc[cont] = (acc[cont] || 0) + c.n;
     }
     return Object.entries(acc).sort((a, b) => b[1] - a[1]);
@@ -269,7 +292,7 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
                    onClick={() => { if (!dragged.current) setSelected(null); }}>
                 <path d={LAND_PATH} fill={LAND} stroke="#ffffff" strokeWidth={0.6 * k} />
                 {[...cities].reverse().sort((a, b) => isMine(a) - isMine(b)).map(c => {
-                  const [x, y] = CITY_POS[c.city];
+                  const [x, y] = cityPos(c);
                   const r = radius(c.n);
                   const me = isMine(c);
                   const active = selected?.city === c.city && selected?.country === c.country;
@@ -325,7 +348,7 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
                       {list.map((p, i) => (
                         <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "10px 0", borderTop: `1px solid ${T.border}`, fontSize: 14 }}>
                           <span style={{ color: T.text }}>{p.name}{p.me && <span style={{ color: T.muted }}> (toi)</span>}</span>
-                          <span style={{ color: T.muted, textAlign: "right", minWidth: 0 }}>{p.school}{p.semester && SEM[p.semester] ? ` · ${SEM[p.semester]}` : ""}</span>
+                          <span style={{ color: T.muted, textAlign: "right", minWidth: 0 }}>{p.tripType === "internship" ? `Stage · ${p.school}` : p.tripType === "freemover" ? `Freemover · ${p.school}` : p.school}{p.semester && SEM[p.semester] ? ` · ${p.tripType && p.tripType !== "exchange" && p.semester === "double" ? "Année complète" : SEM[p.semester]}` : ""}</span>
                         </div>
                       ))}
                       {hidden > 0 && <p style={{ margin: "10px 0 0", fontSize: 13, color: T.faint }}>{hidden === selected.n ? "Personne ne s'affiche ici." : `+ ${hidden} qui ne s'affiche${hidden > 1 ? "nt" : ""} pas sur la carte.`}</p>}
@@ -344,7 +367,7 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
                 <span style={{ width: 10, height: 10, borderRadius: "50%", background: MINE, display: "inline-block", marginRight: 6, verticalAlign: "-1px" }} />
                 {mine
                   ? <>Ta destination : <strong style={{ color: T.text }}>{mine.city}</strong> · {mine.n} étudiant{mine.n > 1 ? "s" : ""}{sem !== "all" ? " ce semestre" : ""} (toi compris)
-                      <button onClick={() => { const [x, y] = CITY_POS[mine.city]; animateTo([x - 60, y - 26, 120, 52]); setSelected(mine); }}
+                      <button onClick={() => { const [x, y] = cityPos(mine); animateTo([x - 60, y - 26, 120, 52]); setSelected(mine); }}
                               style={{ marginLeft: 4, background: "none", border: "none", padding: 0, color: MINE, fontSize: 13, cursor: "pointer", textDecoration: "underline" }}>Voir sur la carte</button></>
                   : <>Ta destination ({myDest.city}) n'apparaît pas avec ce filtre.</>}
               </p>
@@ -354,7 +377,7 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
               <div style={{ ...card, padding: 20 }}>
                 <p style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 500, color: T.text }}>Top destinations</p>
                 {cities.slice(0, 5).map((c, i) => (
-                  <div key={c.country + c.city} onClick={() => { const [x, y] = CITY_POS[c.city]; animateTo([x - 60, y - 26, 120, 52]); setSelected(c); }}
+                  <div key={c.country + c.city} onClick={() => { const [x, y] = cityPos(c); animateTo([x - 60, y - 26, 120, 52]); setSelected(c); }}
                        style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14, color: isMine(c) ? MINE : T.text, cursor: "pointer", borderTop: i ? `1px solid ${T.border}` : "none" }}>
                     <span>{i + 1}. {c.city} <span style={{ color: T.faint }}>· {c.country}</span></span>
                     <strong>{c.n}</strong>
@@ -400,7 +423,7 @@ export function MapPreview({ T, onOpen }) {
   useEffect(() => {
     fetch("/api/map")
       .then(r => (r.ok ? r.json() : Promise.reject()))
-      .then(d => setCities((d.cities || []).filter(c => c.count >= MIN_SHOW && CITY_POS[c.city])))
+      .then(d => setCities((d.cities || []).filter(c => c.count >= MIN_SHOW && cityPos(c))))
       .catch(() => setCities([]));
   }, []);
   const max = Math.max(1, ...(cities || []).map(c => c.count));
@@ -412,7 +435,7 @@ export function MapPreview({ T, onOpen }) {
       <svg viewBox={`0 ${VB_Y} ${MAP_W} ${VB_H}`} style={{ width: "100%", height: "auto", display: "block", background: T.bgSoft || "#f8f7f5" }} aria-hidden="true">
         <path d={LAND_PATH} fill={LAND} stroke="#ffffff" strokeWidth={0.6} />
         {(cities || []).map(c => {
-          const [x, y] = CITY_POS[c.city];
+          const [x, y] = cityPos(c);
           return <circle key={c.country + c.city} cx={x} cy={y} r={4 + 9 * Math.sqrt(c.count / max)} fill={RED} fillOpacity={0.7} stroke="#fff" strokeWidth={1} />;
         })}
       </svg>

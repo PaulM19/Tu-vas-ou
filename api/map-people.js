@@ -17,7 +17,8 @@ export default async function handler(req, res) {
   });
 
   const cols = "select=email,first_name,last_name,school,city,country,semester";
-  let r = await get(`${cols},show_full_name&show_on_map=eq.true&order=first_name.asc`);
+  let r = await get(`${cols},show_full_name,trip_type&show_on_map=eq.true&order=first_name.asc`);
+  if (!r.ok) r = await get(`${cols},show_full_name&show_on_map=eq.true&order=first_name.asc`);
   // Colonnes pas encore créées (voir supabase/show-on-map.sql) : tout le monde visible, avec l'initiale seulement.
   if (!r.ok) {
     console.log("map-people: show_on_map indisponible, liste complète utilisée.", r.status);
@@ -36,6 +37,7 @@ export default async function handler(req, res) {
       name: `${(s.first_name || "").trim()}${!last ? "" : s.show_full_name === true ? ` ${last}` : ` ${last[0].toUpperCase()}.`}`,
       school: s.school,
       semester: s.semester,
+      tripType: s.trip_type || "exchange",
       me: (s.email || "").toLowerCase() === cleanEmail,
     });
   }

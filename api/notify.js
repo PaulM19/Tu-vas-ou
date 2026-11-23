@@ -1,4 +1,5 @@
 import { requireUser, escapeHtml } from "./_lib/auth.js";
+import { findMatchRows } from "./_lib/students.js";
 
 const SUPABASE_URL = "https://fckolgfthpkjmtviysba.supabase.co";
 
@@ -50,9 +51,8 @@ export default async function handler(req, res) {
   const meRows = await sbGet(`students?select=*&email=eq.${encodeURIComponent(email)}&limit=1`);
   if (!meRows.length) return res.status(404).json({ error: "Inscription introuvable." });
   const newStudent = shape(meRows[0]);
-  const matches = (await sbGet(`students?select=*&school=eq.${encodeURIComponent(meRows[0].school)}`))
-    .filter(r => r.email.toLowerCase() !== email)
-    .map(shape);
+  // Même règle de matchs que sur le site (même université, ou même ville pour stage / freemover)
+  const matches = (await findMatchRows(meRows[0])).map(shape);
 
   const dest = newStudent.destination.school;
   const city = newStudent.destination.city;

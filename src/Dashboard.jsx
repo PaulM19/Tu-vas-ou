@@ -84,8 +84,14 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, Profi
     }, []);
 
     const dest = me.destination;
+    const trip = me.tripType || "exchange";
+    const TRIP = { exchange: "Échange", freemover: "Freemover", internship: "Stage" };
     // « Bilbao / Madrid » et autres villes : photo libre de droits si on en a une
     const photo = CITY_PHOTOS[dest.city] || null;
+    const inCity = useMemo(() => {
+          if (!cities) return null;
+          return cities.filter(c => c.city === dest.city && c.country === dest.country).reduce((s, c) => s + c.count, 0) || 1;
+    }, [cities, dest.city, dest.country]);
     const inCountry = useMemo(() => {
           if (!cities) return null;
           return cities.filter(c => c.country === dest.country).reduce((s, c) => s + c.count, 0) || 1;
@@ -149,7 +155,7 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, Profi
                        backgroundImage: photo ? `linear-gradient(90deg, rgba(0,25,49,0.92) 0%, rgba(0,25,49,0.70) 45%, rgba(0,25,49,0.30) 100%), url("${photo.src}")` : "none",
                        backgroundSize: "cover", backgroundPosition: "center",
                      }}>
-                  <p style={{ margin: "0 0 10px", fontSize: 13, color: "rgba(255,255,255,0.7)" }}>Ta destination</p>
+                  <p style={{ margin: "0 0 10px", fontSize: 13, color: "rgba(255,255,255,0.7)" }}>{trip === "internship" ? "Ton stage" : trip === "freemover" ? "Ta destination · Freemover" : "Ta destination"}</p>
                   <p style={{ margin: "0 0 6px", fontFamily: T.serif, fontWeight: 600, fontSize: 32, lineHeight: 1.15, textShadow: "0 1px 12px rgba(0,25,49,0.4)" }}>{dest.city}</p>
                   <p style={{ margin: "0 0 20px", fontSize: 15, color: "rgba(255,255,255,0.85)" }}>{dest.school}, {dest.country}</p>
                   <p style={{ margin: 0, fontSize: 14, color: T.gold }}>{departure(me.semester)}</p>
@@ -162,7 +168,9 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, Profi
                 </div>
 
                 <p style={{ fontSize: 14, color: T.muted, margin: "20px 0 0", lineHeight: 1.7 }}>
-                  {matches.length + 1} étudiant{matches.length ? "s" : ""} dans ton école
+                  {trip === "exchange"
+                    ? <>{matches.length + 1} étudiant{matches.length ? "s" : ""} dans ton école</>
+                    : <>{inCity ?? matches.length + 1} étudiant{(inCity ?? matches.length + 1) > 1 ? "s" : ""} emlyon à {dest.city}</>}
                   {inCountry != null && <> · {inCountry} en {dest.country}</>}
                   {" · "}
                   <button onClick={() => go("map")} style={textBtn}>Voir la carte de la promo</button>
@@ -174,8 +182,15 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, Profi
                 <h2 style={h2}>Mes matchs</h2>
                 <p style={lead}>
                   {matches.length === 0
-                    ? "Personne d'autre n'est encore inscrit dans ton école. On te prévient dès que quelqu'un te rejoint."
-                    : `${matches.length} étudiant${matches.length > 1 ? "s" : ""} emlyon ${matches.length > 1 ? "partent" : "part"} à ${dest.school}.`}
+                    ? (trip === "exchange"
+                        ? "Personne d'autre n'est encore inscrit dans ton école. On te prévient dès que quelqu'un te rejoint."
+                        : `Personne d'autre n'est encore inscrit à ${dest.city}. On te prévient dès que quelqu'un arrive.`)
+                    : trip === "exchange"
+                      ? (() => {
+                          const sameSchool = matches.filter(m => m.destination.school === dest.school).length, others = matches.length - sameSchool;
+                          return `${sameSchool ? `${sameSchool} étudiant${sameSchool > 1 ? "s" : ""} emlyon à ${dest.school}` : `Personne d'autre à ${dest.school} pour l'instant`}${others ? `, et ${others} en stage ou freemover à ${dest.city}` : ""}.`;
+                        })()
+                      : `${matches.length} étudiant${matches.length > 1 ? "s" : ""} emlyon à ${dest.city}${trip === "freemover" ? " ou dans ton université" : ""}.`}
                 </p>
                 {matches.length > 0 && (
                   <div style={{ borderTop: `1px solid ${T.border}` }}>
@@ -233,10 +248,11 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, Profi
                 <dl style={{ margin: 0, borderTop: `1px solid ${T.border}` }}>
                   {[
                     ["Nom", `${me.firstName} ${me.lastName}`],
-                    ["Destination", `${dest.school}, ${dest.city} (${dest.country})`],
+                    ["Type", TRIP[trip]],
+                    [trip === "internship" ? "Entreprise" : "Destination", `${dest.school}, ${dest.city} (${dest.country})`],
                     ["Email", me.email],
                     ["WhatsApp", me.whatsapp || "—"],
-                    ["Semestre", SEM_FULL[me.semester] || me.semester],
+                    [trip === "internship" ? "Période" : "Semestre", trip !== "exchange" && me.semester === "double" ? "Année complète (2026–2027)" : SEM_FULL[me.semester] || me.semester],
                     ["Je cherche", (me.lookingFor || []).map(lf => LOOKING[lf] || lf).join(", ") || "—"],
                   ].map(([label, value]) => (
                     <div key={label} className="tpo-row" style={{ padding: "14px 0", borderBottom: `1px solid ${T.border}` }}>
@@ -253,7 +269,7 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, Profi
                     <span>
                       <span style={{ display: "block", fontSize: 15, fontWeight: 500, color: T.text }}>Apparaître sur la carte</span>
                       <span style={{ display: "block", fontSize: 14, color: T.muted, lineHeight: 1.6, marginTop: 2 }}>
-                        Les étudiants emlyon connectés voient ton prénom, l'initiale de ton nom, ton école et ton semestre.
+                        Les étudiants emlyon connectés voient ton prénom, l'initiale de ton nom, ton université ou entreprise et ton semestre.
                       </span>
                     </span>
                   </label>
