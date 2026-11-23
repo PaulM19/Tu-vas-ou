@@ -641,6 +641,13 @@ export default function App() {
         window.scrollTo(0, 0);
   }
 
+  // Réglages de la carte (apparaître / nom complet), utilisés dans Mon espace et sur la page Carte
+  async function saveMapSettings({ show, fullName }) {
+        const res = await fetch("/api/map-visibility", { method: "POST", headers: authHeaders(token), body: JSON.stringify({ show, fullName }) });
+        if (!res.ok) throw new Error();
+        setRegistered(r => ({ ...r, ...(show !== undefined && { showOnMap: show }), ...(fullName !== undefined && { showFullName: fullName }) }));
+  }
+
   // ── HOME ──
   if (screen === "home") return (
         <Page go={go} registered={registered} width={1040} center>
@@ -844,11 +851,7 @@ export default function App() {
           <Page go={go} registered={registered} width={1040}>
             <Dashboard T={T} me={registered} matches={matches} go={go}
                        StudentCard={StudentCard} ShareBar={ShareBar} ProfileForm={ProfileForm}
-                       onMapSettings={async ({ show, fullName }) => {
-                         const res = await fetch("/api/map-visibility", { method: "POST", headers: authHeaders(token), body: JSON.stringify({ show, fullName }) });
-                         if (!res.ok) throw new Error();
-                         setRegistered(r => ({ ...r, ...(show !== undefined && { showOnMap: show }), ...(fullName !== undefined && { showFullName: fullName }) }));
-                       }}
+                       onMapSettings={saveMapSettings}
                        onSaveProfile={async f => {
                          const res = await fetch("/api/update-profile", { method: "POST", headers: authHeaders(token),
                            body: JSON.stringify({ firstName: f.firstName, lastName: f.lastName, whatsapp: f.whatsapp, semester: f.semester, lookingFor: f.lookingFor, destination: f.destination }) });
@@ -874,7 +877,7 @@ if (screen === "map") {
       const fromMatches = !!registered;
       return (
         <Page go={go} registered={registered} width={820}>
-          <WorldMap T={T} myDest={registered?.destination || null} token={registered ? token : null} onLogin={() => go("lookup")}
+          <WorldMap T={T} myDest={registered?.destination || null} token={registered ? token : null} onLogin={() => go("lookup")} me={registered} onMapSettings={saveMapSettings}
                     backLabel={fromMatches ? "Mon espace" : "Retour"}
                     onBack={() => { if (window.location.search) window.history.replaceState(null, "", window.location.pathname); go(fromMatches ? "matches" : "home"); }} />
         </Page>

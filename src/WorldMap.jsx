@@ -43,7 +43,7 @@ const SEMESTERS = [
 ];
 
 // myDest : { city, country } de l'étudiant connecté (ou null)
-export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Retour", token = null, onLogin = null }) {
+export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Retour", token = null, onLogin = null, me = null, onMapSettings = null }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState(null);
@@ -148,13 +148,23 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
   const [sem, setSem] = useState("all");
   // Noms par ville : seulement pour les étudiants connectés
   const [people, setPeople] = useState(null);
+  const [reload, setReload] = useState(0);
+  const [nameBusy, setNameBusy] = useState(false);
+  const [nameError, setNameError] = useState("");
+  // Case « nom complet » : on enregistre puis on recharge la liste pour voir le changement
+  const toggleFullName = async v => {
+    setNameBusy(true); setNameError("");
+    try { await onMapSettings({ fullName: v }); setReload(x => x + 1); }
+    catch { setNameError("Impossible d'enregistrer ton choix. Réessaie."); }
+    setNameBusy(false);
+  };
   useEffect(() => {
     if (!token) { setPeople(null); return; }
     fetch("/api/map-people", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: "{}" })
       .then(r => (r.ok ? r.json() : Promise.reject()))
       .then(d => setPeople(d.cities || []))
       .catch(() => setPeople([]));
-  }, [token]);
+  }, [token, reload]);
 
   useEffect(() => {
     fetch("/api/map")
@@ -211,6 +221,26 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
         <p style={{ fontSize: 14, color: T.muted, margin: "0 0 20px", lineHeight: 1.6 }}>
           {token ? "Clique sur une ville pour voir qui y part." : "Chaque point rouge est une ville d'échange. Plus il est gros, plus il y a d'étudiants."}
         </p>
+
+        {token && me && onMapSettings && (
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 18px", margin: "0 0 20px", border: `1px solid ${T.border}`, borderRadius: T.radiusLg }}>
+            {me.showOnMap === false ? (
+              <span style={{ fontSize: 14, color: T.muted }}>Tu n'apparais pas sur la carte. Tu peux changer ça dans ton espace.</span>
+            ) : (
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 12, cursor: nameBusy ? "default" : "pointer" }}>
+                <input type="checkbox" checked={me.showFullName === true} disabled={nameBusy} onChange={e => toggleFullName(e.target.checked)}
+                       style={{ width: 18, height: 18, marginTop: 2, accentColor: T.navy, cursor: "pointer", flexShrink: 0 }} />
+                <span>
+                  <span style={{ display: "block", fontSize: 15, fontWeight: 500, color: T.text }}>Afficher mon nom de famille en entier</span>
+                  <span style={{ display: "block", fontSize: 14, color: T.muted, marginTop: 2 }}>
+                    Tu apparais comme « {me.firstName} {me.showFullName ? me.lastName : `${(me.lastName || "").trim().charAt(0).toUpperCase()}.`} ».
+                  </span>
+                </span>
+              </label>
+            )}
+            {nameError && <span style={{ fontSize: 14, color: T.red }}>{nameError}</span>}
+          </div>
+        )}
 
         {error && <p style={{ color: T.red, fontSize: 14 }}>{error}</p>}
         {!data && !error && <p style={{ color: T.muted, fontSize: 14 }}>Chargement de la carte…</p>}
