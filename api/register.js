@@ -87,7 +87,7 @@ if (!ok) {
 }
 
 
-const student = shape(data[0]);
+const student = { ...shape(data[0]), showOnMap: data[0].show_on_map !== false };
 
 const { data: schoolRows } = await sbFetch(
     `students?select=*&school=eq.${encodeURIComponent(destination.school)}&order=created_at.asc`

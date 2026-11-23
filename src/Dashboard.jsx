@@ -34,13 +34,25 @@ function departure(semester, now = new Date()) {
 const read = (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
 const write = (key, v) => { try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* stockage indisponible */ } };
 
-export default function Dashboard({ T, me, matches, StudentCard, ShareBar, ProfileForm, shareProps, go, onLogout, onDelete, onSaveProfile }) {
+export default function Dashboard({ T, me, matches, StudentCard, ShareBar, ProfileForm, shareProps, go, onLogout, onDelete, onSaveProfile, onMapVisibility }) {
     const [cities, setCities] = useState(null);
     const checksKey = `tpo_checklist_${me.email}`;
     const seenKey = `tpo_seen_${me.email}`;
     const [checks, setChecks] = useState(() => read(checksKey, {}));
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [editing, setEditing] = useState(false);
+    const showOnMap = me.showOnMap !== false;
+    const [mapBusy, setMapBusy] = useState(false);
+    const [mapError, setMapError] = useState("");
+    const setVisibility = async v => {
+          setMapBusy(true); setMapError("");
+          try { await onMapVisibility(v); } catch { setMapError("Impossible d'enregistrer ton choix. Réessaie."); }
+          setMapBusy(false);
+    };
+    // Message d'information sur la carte, affiché une seule fois (par appareil)
+    const noticeKey = `tpo_map_notice_${me.email}`;
+    const [showNotice, setShowNotice] = useState(() => !read(noticeKey, false));
+    const closeNotice = () => { write(noticeKey, true); setShowNotice(false); };
     const [saved, setSaved] = useState(false);
     const [active, setActive] = useState("apercu");
     // Calculé une seule fois à l'ouverture : les matchs absents de la dernière visite sont « nouveaux »
@@ -104,6 +116,19 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, Profi
                     ? <>Tu as <button onClick={() => scrollTo("matchs")} style={{ ...textBtn, fontSize: 15, color: T.accent }}>{newIds.size} nouveau{newIds.size > 1 ? "x" : ""} match{newIds.size > 1 ? "s" : ""}</button> depuis ta dernière visite.</>
                     : "Voici où tu en es."}
                 </p>
+
+                {showNotice && (
+                  <div style={{ marginBottom: 24, padding: "18px 20px", border: `1px solid ${T.borderStrong}`, borderRadius: T.radiusLg }}>
+                    <p style={{ margin: "0 0 6px", fontSize: 15, fontWeight: 500, color: T.text }}>Nouveau : vois qui part où sur la carte</p>
+                    <p style={{ margin: "0 0 14px", fontSize: 14, color: T.muted, lineHeight: 1.6 }}>
+                      Les étudiants emlyon connectés peuvent voir ton prénom, l'initiale de ton nom, ton école et ton semestre sur la carte. Ton numéro et ton email restent privés.
+                    </p>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <button onClick={closeNotice} style={{ padding: "9px 16px", background: T.navy, color: "#fff", border: "none", borderRadius: T.radius, fontSize: 14, cursor: "pointer" }}>J'ai compris</button>
+                      <button onClick={async () => { await setVisibility(false); closeNotice(); }} disabled={mapBusy} style={{ padding: "9px 16px", background: T.bgCard, color: T.text, border: `1px solid ${T.borderStrong}`, borderRadius: T.radius, fontSize: 14, cursor: "pointer" }}>Ne pas apparaître</button>
+                    </div>
+                  </div>
+                )}
 
                 <div style={{ background: T.navy, color: "#fff", borderRadius: T.radiusLg, padding: "28px 28px 26px" }}>
                   <p style={{ margin: "0 0 10px", fontSize: 13, color: "rgba(255,255,255,0.6)" }}>Ta destination</p>
@@ -191,6 +216,19 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, Profi
                   ))}
                 </dl>
                 )}
+
+                <div style={{ marginTop: 32, padding: "18px 20px", border: `1px solid ${T.border}`, borderRadius: T.radiusLg }}>
+                  <label style={{ display: "flex", alignItems: "flex-start", gap: 12, cursor: mapBusy ? "default" : "pointer" }}>
+                    <input type="checkbox" checked={showOnMap} disabled={mapBusy} onChange={e => setVisibility(e.target.checked)} style={{ width: 18, height: 18, marginTop: 2, accentColor: T.navy, cursor: "pointer", flexShrink: 0 }} />
+                    <span>
+                      <span style={{ display: "block", fontSize: 15, fontWeight: 500, color: T.text }}>Apparaître sur la carte</span>
+                      <span style={{ display: "block", fontSize: 14, color: T.muted, lineHeight: 1.6, marginTop: 2 }}>
+                        Les étudiants emlyon connectés voient ton prénom, l'initiale de ton nom, ton école et ton semestre.
+                      </span>
+                    </span>
+                  </label>
+                  {mapError && <p style={{ margin: "10px 0 0", fontSize: 14, color: T.red }}>{mapError}</p>}
+                </div>
 
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 24, marginTop: 32 }}>
                   <button onClick={onLogout} style={textBtn}>Se déconnecter</button>

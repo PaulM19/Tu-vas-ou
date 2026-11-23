@@ -96,5 +96,5 @@ export default async function handler(req, res) {
     .filter(s => s.email.toLowerCase() !== cleanEmail)
     .map(shape);
 
-  return res.status(200).json({ student: shape(me), matches });
+  return res.status(200).json({ student: { ...shape(me), showOnMap: me.show_on_map !== false }, matches });
 }

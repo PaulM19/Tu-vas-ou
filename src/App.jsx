@@ -703,7 +703,7 @@ export default function App() {
                 <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", margin: "8px 0" }}>
                   <input type="checkbox" checked={form.consent} onChange={e => setForm(f => ({ ...f, consent: e.target.checked }))} style={{ marginTop: 3, width: 16, height: 16, flexShrink: 0, cursor: "pointer", accentColor: T.navy }} />
                   <span style={{ fontSize: 13, color: T.muted, lineHeight: 1.6 }}>
-                    J'accepte que mes informations soient partagées avec les étudiants emlyon qui partent au même endroit, et utilisées par l'équipe pour me recommander les bons plans de ma ville.{" "}
+                    J'accepte que mes coordonnées soient partagées avec les étudiants emlyon qui partent dans la même école, que mon prénom, mon école et mon semestre apparaissent sur la carte pour les étudiants connectés, et que l'équipe utilise mes informations pour me recommander les bons plans de ma ville.{" "}
                     <span onClick={e => { e.preventDefault(); go("privacy"); }} style={{ color: T.text, textDecoration: "underline", cursor: "pointer" }}>En savoir plus</span>
                   </span>
                 </label>
@@ -844,6 +844,11 @@ export default function App() {
           <Page go={go} registered={registered} width={1040}>
             <Dashboard T={T} me={registered} matches={matches} go={go}
                        StudentCard={StudentCard} ShareBar={ShareBar} ProfileForm={ProfileForm}
+                       onMapVisibility={async show => {
+                         const res = await fetch("/api/map-visibility", { method: "POST", headers: authHeaders(token), body: JSON.stringify({ show }) });
+                         if (!res.ok) throw new Error();
+                         setRegistered(r => ({ ...r, showOnMap: show }));
+                       }}
                        onSaveProfile={async f => {
                          const res = await fetch("/api/update-profile", { method: "POST", headers: authHeaders(token),
                            body: JSON.stringify({ firstName: f.firstName, lastName: f.lastName, whatsapp: f.whatsapp, semester: f.semester, lookingFor: f.lookingFor, destination: f.destination }) });
@@ -869,7 +874,7 @@ if (screen === "map") {
       const fromMatches = !!registered;
       return (
         <Page go={go} registered={registered} width={820}>
-          <WorldMap T={T} myDest={registered?.destination || null}
+          <WorldMap T={T} myDest={registered?.destination || null} token={registered ? token : null} onLogin={() => go("lookup")}
                     backLabel={fromMatches ? "Mon espace" : "Retour"}
                     onBack={() => { if (window.location.search) window.history.replaceState(null, "", window.location.pathname); go(fromMatches ? "matches" : "home"); }} />
         </Page>
@@ -885,10 +890,11 @@ if (screen === "map") {
             { title: "Qui sommes-nous ?", content: "Tu pars où en échange ? est une application créée par des étudiants emlyon pour les étudiants emlyon qui partent en échange académique. Ce projet n'est pas affilié officiellement à emlyon business school." },
             { title: "Quelles données collectons-nous ?", content: "Lors de ton inscription, nous collectons : ton prénom et ton nom, ton adresse email @edu.em-lyon.com, ta destination d'échange (école, ville, pays), ton semestre, ce que tu recherches (coloc, amis…) et ton numéro WhatsApp." },
             { title: "Pourquoi collectons-nous ces données ?", content: "Pour deux raisons. D'abord, te mettre en relation avec les autres étudiants emlyon qui partent au même endroit que toi. Ensuite, t'aider à t'installer dans ta ville : notre équipe s'appuie sur l'expérience des anciens étudiants partis aux mêmes endroits pour repérer les meilleurs bons plans de chaque ville (logement, transports, démarches, vie sur place). Ta destination, ton semestre, ce que tu recherches et tes coordonnées peuvent être utilisés pour te recommander ces bons plans." },
-            { title: "Qui peut voir mes données ?", content: "Les étudiants emlyon inscrits qui partent dans la même école que toi voient ton nom, ton semestre, ce que tu recherches et ton numéro WhatsApp. L'équipe du projet y a accès pour t'envoyer des recommandations adaptées à ta destination. Ton email n'est jamais affiché aux autres étudiants. Tes données ne sont ni vendues ni transmises à des tiers." },
+            { title: "Qui peut voir mes données ?", content: "Les étudiants emlyon inscrits qui partent dans la même école que toi voient ton nom, ton semestre, ce que tu recherches et ton numéro WhatsApp. Tous les étudiants emlyon connectés peuvent voir sur la carte ton prénom, l'initiale de ton nom, ton école et ton semestre (voir ci-dessous). L'équipe du projet y a accès pour t'envoyer des recommandations adaptées à ta destination. Ton email n'est jamais affiché aux autres étudiants. Tes données ne sont ni vendues ni transmises à des tiers." },
+            { title: "La carte de la promo", content: "La carte montre où partent les étudiants. Les visiteurs non connectés ne voient que le nombre d'étudiants par ville. Les étudiants emlyon connectés (adresse vérifiée par un code envoyé par email) peuvent cliquer sur une ville pour voir qui y part : prénom, initiale du nom, école et semestre. Ton email et ton numéro WhatsApp n'y apparaissent jamais. Tu es visible par défaut, et tu peux te retirer de la carte à tout moment dans ton espace (partie « Mon profil », case « Apparaître sur la carte »)." },
             { title: "Ne plus recevoir de bons plans", content: "Tu peux à tout moment demander à ne plus recevoir de recommandations en écrivant à monzatpaul@gmail.com. Tu restes inscrit et tu gardes l'accès à tes matchs." },
             { title: "Combien de temps garde-t-on tes données ?", content: "Tes données sont conservées jusqu'à la fin de l'année académique 2026-2027, ou jusqu'à ce que tu demandes leur suppression." },
-            { title: "Tes droits (RGPD)", content: "Tu as le droit d'accéder à tes données, de les corriger, de t'opposer à leur utilisation pour les recommandations et de les supprimer à tout moment, via « Supprimer mon inscription » dans ton espace. Pour toute question, contacte monzatpaul@gmail.com." },
+            { title: "Tes droits (RGPD)", content: "Tu as le droit d'accéder à tes données, de les corriger, de t'opposer à leur utilisation pour les recommandations, de te retirer de la carte et de les supprimer à tout moment, via « Supprimer mon inscription » dans ton espace. Pour toute question, contacte monzatpaul@gmail.com." },
             { title: "Sécurité", content: "Les données sont stockées sur Supabase, une infrastructure sécurisée hébergée en Europe. Ton numéro WhatsApp n'est visible que par les étudiants qui partent dans la même école que toi et par l'équipe du projet." },
                     ].map(({ title, content }) => (
                                 <div key={title} style={{ marginBottom: 32 }}>

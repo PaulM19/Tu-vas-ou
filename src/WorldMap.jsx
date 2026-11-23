@@ -43,7 +43,7 @@ const SEMESTERS = [
 ];
 
 // myDest : { city, country } de l'étudiant connecté (ou null)
-export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Retour" }) {
+export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Retour", token = null, onLogin = null }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState(null);
@@ -146,6 +146,15 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
     startGesture();
   };
   const [sem, setSem] = useState("all");
+  // Noms par ville : seulement pour les étudiants connectés
+  const [people, setPeople] = useState(null);
+  useEffect(() => {
+    if (!token) { setPeople(null); return; }
+    fetch("/api/map-people", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: "{}" })
+      .then(r => (r.ok ? r.json() : Promise.reject()))
+      .then(d => setPeople(d.cities || []))
+      .catch(() => setPeople([]));
+  }, [token]);
 
   useEffect(() => {
     fetch("/api/map")
@@ -200,7 +209,7 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
 
         <h1 style={{ fontFamily: T.serif || "inherit", fontSize: 34, fontWeight: 600, color: T.text, margin: "0 0 10px", letterSpacing: "-0.5px" }}>Où part la promo ?</h1>
         <p style={{ fontSize: 14, color: T.muted, margin: "0 0 20px", lineHeight: 1.6 }}>
-          Chaque point rouge est une ville d'échange. Plus il est gros, plus il y a d'étudiants. Aucun nom n'est affiché.
+          {token ? "Clique sur une ville pour voir qui y part." : "Chaque point rouge est une ville d'échange. Plus il est gros, plus il y a d'étudiants."}
         </p>
 
         {error && <p style={{ color: T.red, fontSize: 14 }}>{error}</p>}
@@ -263,6 +272,38 @@ export default function WorldMap({ T, onBack, myDest = null, backLabel = "← Re
                 </div>
               )}
             </div>
+
+            {selected && (() => {
+              const entry = (people || []).find(c => c.city === selected.city && c.country === selected.country);
+              const list = (entry?.people || []).filter(p => sem === "all" || p.semester === sem);
+              const hidden = Math.max(0, selected.n - list.length);
+              const SEM = { fall: "Fall", spring: "Spring", double: "Double diplôme" };
+              return (
+                <div style={{ ...card, padding: "18px 20px", marginTop: 10 }}>
+                  <p style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 500, color: T.text }}>{selected.city} <span style={{ color: T.muted, fontWeight: 400 }}>· {selected.country}</span></p>
+                  <p style={{ margin: "0 0 12px", fontSize: 14, color: T.muted }}>{selected.n} étudiant{selected.n > 1 ? "s" : ""}{sem !== "all" ? " ce semestre" : ""}</p>
+                  {!token ? (
+                    <p style={{ margin: 0, fontSize: 14, color: T.muted }}>
+                      {onLogin
+                        ? <><button onClick={onLogin} style={{ background: "none", border: "none", padding: 0, fontSize: 14, color: T.text, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}>Connecte-toi</button> pour voir qui part dans cette ville.</>
+                        : "Connecte-toi pour voir qui part dans cette ville."}
+                    </p>
+                  ) : people === null ? (
+                    <p style={{ margin: 0, fontSize: 14, color: T.faint }}>Chargement…</p>
+                  ) : (
+                    <>
+                      {list.map((p, i) => (
+                        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "10px 0", borderTop: `1px solid ${T.border}`, fontSize: 14 }}>
+                          <span style={{ color: T.text }}>{p.name}{p.me && <span style={{ color: T.muted }}> (toi)</span>}</span>
+                          <span style={{ color: T.muted, textAlign: "right", minWidth: 0 }}>{p.school}{p.semester && SEM[p.semester] ? ` · ${SEM[p.semester]}` : ""}</span>
+                        </div>
+                      ))}
+                      {hidden > 0 && <p style={{ margin: "10px 0 0", fontSize: 13, color: T.faint }}>{hidden === selected.n ? "Personne ne s'affiche ici." : `+ ${hidden} qui ne s'affiche${hidden > 1 ? "nt" : ""} pas sur la carte.`}</p>}
+                    </>
+                  )}
+                </div>
+              );
+            })()}
 
             <p style={{ margin: "8px 0 0", fontSize: 12, color: T.faint }}>
               Glisse pour te déplacer · molette, pincement ou double-clic pour zoomer
