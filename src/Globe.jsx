@@ -32,7 +32,9 @@ function loadTexture() {
 }
 const MINE = "#001931";
 
-export default function Globe({ cities, isMine, selected, onSelect }) {
+// zoomable : molette / pincement pour zoomer (désactivé sur l'accueil pour ne pas bloquer le défilement)
+// touchAction : "none" en plein écran ; "pan-y" sur l'accueil (glisser vertical = défiler la page)
+export default function Globe({ cities, isMine, selected, onSelect, zoomable = true, touchAction = "none" }) {
   const canvasRef = useRef(null);
   const state = useRef({ rotate: [-10, -25], scale: 1, dragging: false, moved: false, last: null, pinch: null, idleUntil: 0, anim: null });
   const pointers = useRef(new Map());
@@ -62,6 +64,10 @@ export default function Globe({ cities, isMine, selected, onSelect }) {
     const projection = geoOrthographic().clipAngle(90).precision(0.6);
     const path = geoPath(projection, ctx);
     let raf, w = 0, h = 0, dpr = 1;
+    // Pas de calcul quand le globe n'est pas à l'écran
+    let visible = true;
+    const io = "IntersectionObserver" in window ? new IntersectionObserver(([e]) => { visible = e.isIntersecting; }) : null;
+    io?.observe(canvas);
     let tex = null;
     loadTexture().then(t => { tex = t; }).catch(() => {});
     // Tampon de rendu (résolution réduite, agrandie ensuite) et géométrie précalculée des pixels du disque
@@ -125,6 +131,7 @@ export default function Globe({ cities, isMine, selected, onSelect }) {
     ro.observe(canvas);
 
     const draw = now => {
+      if (!visible || document.hidden) { raf = requestAnimationFrame(draw); return; }
       const s = state.current;
       if (s.anim) s.anim(now);
       else if (!s.dragging && now > s.idleUntil) s.rotate = [s.rotate[0] + 0.08, s.rotate[1]];
@@ -186,9 +193,9 @@ export default function Globe({ cities, isMine, selected, onSelect }) {
       s.scale = Math.min(6, Math.max(0.7, s.scale * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.002))));
       s.idleUntil = Math.max(s.idleUntil, performance.now() + 2500);
     };
-    canvas.addEventListener("wheel", onWheel, { passive: false });
+    if (zoomable) canvas.addEventListener("wheel", onWheel, { passive: false });
 
-    return () => { cancelAnimationFrame(raf); ro.disconnect(); canvas.removeEventListener("wheel", onWheel); };
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); io?.disconnect(); canvas.removeEventListener("wheel", onWheel); };
   }, []);
 
   // Glisser pour tourner, pincer pour zoomer, toucher une ville pour l'ouvrir
@@ -198,7 +205,7 @@ export default function Globe({ cities, isMine, selected, onSelect }) {
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     s.anim = null;
     if (pointers.current.size === 1) { s.dragging = true; s.moved = false; s.last = { x: e.clientX, y: e.clientY }; }
-    if (pointers.current.size === 2) {
+    if (pointers.current.size === 2 && zoomable) {
       const [a, b] = [...pointers.current.values()];
       s.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), scale: s.scale };
     }
@@ -239,7 +246,7 @@ export default function Globe({ cities, isMine, selected, onSelect }) {
 
   return (
     <canvas ref={canvasRef} aria-label="Globe des destinations : glisse pour le faire tourner"
-            style={{ width: "100%", height: "100%", display: "block", touchAction: "none", cursor: "grab" }}
+            style={{ width: "100%", height: "100%", display: "block", touchAction, cursor: "grab" }}
             onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} />
   );
 }

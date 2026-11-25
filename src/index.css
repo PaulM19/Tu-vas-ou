@@ -29,5 +29,12 @@ button:disabled{cursor:not-allowed}
 .tpo-nav{gap:20px}
 @media(max-width:420px){.tpo-nav{gap:12px}}
 @media(max-width:359px){.tpo-hide-xs{display:none!important}}
+/* Barre d'onglets en bas (téléphone) : remplace les liens de l'en-tête */
+.tpo-bottomnav{display:none}
+@media(max-width:767px){
+  .tpo-bottomnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;background:rgba(255,255,255,0.97);border-top:1px solid #e7e5e1;padding-bottom:env(safe-area-inset-bottom,0px);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+  .tpo-nav{display:none!important}
+  body{padding-bottom:calc(60px + env(safe-area-inset-bottom,0px))}
+}
 @media(max-width:480px){input,select,textarea{font-size:16px!important}}
 @media(prefers-reduced-motion:reduce){.tpo-fade{animation:none}*{transition:none!important}}

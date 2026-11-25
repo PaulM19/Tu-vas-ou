@@ -35,7 +35,40 @@ function departure(semester, now = new Date()) {
 const read = (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
 const write = (key, v) => { try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* stockage indisponible */ } };
 
-export default function Dashboard({ T, me, matches, StudentCard, ShareBar, ProfileForm, shareProps, go, onLogout, onDelete, onSaveProfile, onMapSettings }) {
+// Bannière « Ta destination » avec la photo de la ville (Mon espace et accueil connecté)
+export function DestinationBanner({ T, me, compact = false }) {
+    const dest = me.destination;
+    const trip = me.tripType || "exchange";
+    const photo = CITY_PHOTOS[dest.city] || null;
+    return (
+          <div style={{
+                 position: "relative", overflow: "hidden", color: "#fff", borderRadius: T.radiusLg, padding: compact ? "28px 24px 24px" : "36px 28px 30px", minHeight: compact ? 190 : 220,
+                 backgroundColor: T.navy,
+                 // Photo de la ville sous un voile bleu marine, plus dense à gauche pour garder le texte lisible
+                 backgroundImage: photo ? `linear-gradient(90deg, rgba(0,25,49,0.92) 0%, rgba(0,25,49,0.70) 45%, rgba(0,25,49,0.30) 100%), url("${photo.src}")` : "none",
+                 backgroundSize: "cover", backgroundPosition: "center",
+               }}>
+            <p style={{ margin: "0 0 10px", fontSize: 13, color: "rgba(255,255,255,0.7)" }}>{trip === "internship" ? "Ton stage" : trip === "freemover" ? "Ta destination · Freemover" : "Ta destination"}</p>
+            <p style={{ margin: "0 0 6px", fontFamily: T.serif, fontWeight: 600, fontSize: compact ? 28 : 32, lineHeight: 1.15, textShadow: "0 1px 12px rgba(0,25,49,0.4)" }}>{dest.city}</p>
+            <p style={{ margin: "0 0 20px", fontSize: 15, color: "rgba(255,255,255,0.85)" }}>{dest.school}, {dest.country}</p>
+            <p style={{ margin: 0, fontSize: 14, color: T.gold }}>{departure(me.semester)}</p>
+            {photo && (
+              <a href={photo.page} target="_blank" rel="noopener noreferrer"
+                 style={{ position: "absolute", right: 12, bottom: 8, maxWidth: "60%", fontSize: 10, color: "rgba(255,255,255,0.6)", textDecoration: "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                Photo : {photo.author} · {photo.license}
+              </a>
+            )}
+          </div>
+        );
+}
+
+// Nombre d'étapes cochées dans « Mon départ » (gardé sur l'appareil)
+export function departProgress(me) {
+    const c = read(`tpo_checklist_${me.email}`, {});
+    return { done: CHECKLIST.filter(([k]) => c[k]).length, total: CHECKLIST.length };
+}
+
+export default function Dashboard({ T, me, matches, StudentCard, ShareBar, ProfileForm, shareProps, go, onLogout, onDelete, onSaveProfile, onMapSettings, initialSection = null }) {
     const [cities, setCities] = useState(null);
     const checksKey = `tpo_checklist_${me.email}`;
     const seenKey = `tpo_seen_${me.email}`;
@@ -86,8 +119,6 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, Profi
     const dest = me.destination;
     const trip = me.tripType || "exchange";
     const TRIP = { exchange: "Échange", freemover: "Freemover", internship: "Stage" };
-    // « Bilbao / Madrid » et autres villes : photo libre de droits si on en a une
-    const photo = CITY_PHOTOS[dest.city] || null;
     const inCity = useMemo(() => {
           if (!cities) return null;
           return cities.filter(c => c.city === dest.city && c.country === dest.country).reduce((s, c) => s + c.count, 0) || 1;
@@ -102,6 +133,13 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, Profi
     const departKey = `tpo_depart_seen_${me.email}`;
     const [departOpen, setDepartOpen] = useState(() => !read(departKey, false));
     useEffect(() => { write(departKey, true); }, [departKey]);
+    // Arrivée depuis l'accueil ou la barre d'onglets : on va directement à la bonne partie
+    useEffect(() => {
+          if (!initialSection?.id) return;
+          if (initialSection.id === "depart") setDepartOpen(true);
+          const t = setTimeout(() => document.getElementById(`sec-${initialSection.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+          return () => clearTimeout(t);
+    }, [initialSection?.n]);
     const toggle = k => setChecks(c => { const n = { ...c, [k]: !c[k] }; write(checksKey, n); return n; });
     const scrollTo = id => document.getElementById(`sec-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
@@ -148,24 +186,7 @@ export default function Dashboard({ T, me, matches, StudentCard, ShareBar, Profi
                   </div>
                 )}
 
-                <div style={{
-                       position: "relative", overflow: "hidden", color: "#fff", borderRadius: T.radiusLg, padding: "36px 28px 30px", minHeight: 220,
-                       backgroundColor: T.navy,
-                       // Photo de la ville sous un voile bleu marine, plus dense à gauche pour garder le texte lisible
-                       backgroundImage: photo ? `linear-gradient(90deg, rgba(0,25,49,0.92) 0%, rgba(0,25,49,0.70) 45%, rgba(0,25,49,0.30) 100%), url("${photo.src}")` : "none",
-                       backgroundSize: "cover", backgroundPosition: "center",
-                     }}>
-                  <p style={{ margin: "0 0 10px", fontSize: 13, color: "rgba(255,255,255,0.7)" }}>{trip === "internship" ? "Ton stage" : trip === "freemover" ? "Ta destination · Freemover" : "Ta destination"}</p>
-                  <p style={{ margin: "0 0 6px", fontFamily: T.serif, fontWeight: 600, fontSize: 32, lineHeight: 1.15, textShadow: "0 1px 12px rgba(0,25,49,0.4)" }}>{dest.city}</p>
-                  <p style={{ margin: "0 0 20px", fontSize: 15, color: "rgba(255,255,255,0.85)" }}>{dest.school}, {dest.country}</p>
-                  <p style={{ margin: 0, fontSize: 14, color: T.gold }}>{departure(me.semester)}</p>
-                  {photo && (
-                    <a href={photo.page} target="_blank" rel="noopener noreferrer"
-                       style={{ position: "absolute", right: 12, bottom: 8, maxWidth: "60%", fontSize: 10, color: "rgba(255,255,255,0.6)", textDecoration: "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      Photo : {photo.author} · {photo.license}
-                    </a>
-                  )}
-                </div>
+                <DestinationBanner T={T} me={me} />
 
                 <p style={{ fontSize: 14, color: T.muted, margin: "20px 0 0", lineHeight: 1.7 }}>
                   {trip === "exchange"

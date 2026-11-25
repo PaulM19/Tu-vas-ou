@@ -531,3 +531,25 @@ export function MapPreview({ T, onOpen }) {
     </button>
   );
 }
+
+// Globe de l'accueil : tourne tout seul, se fait tourner à la souris / au doigt (sans bloquer le défilement).
+// cities : données de /api/map · focus : ville à centrer · onPick : clic sur une ville
+export function HomeGlobe({ T, cities, myDest = null, focus = null, onPick, onOpenMap }) {
+  const list = useMemo(() => (cities || []).map(c => { const ll = cityLngLat(c); return ll ? { ...c, n: c.count, lng: ll[0], lat: ll[1] } : null; }).filter(Boolean), [cities]);
+  const isMine = c => !!myDest && c.city === myDest.city && c.country === myDest.country;
+  const target = focus || myDest;
+  const selected = target ? list.find(c => c.city === target.city && c.country === target.country) || null : null;
+  return (
+    <div>
+      <div style={{ position: "relative", width: "100%", maxWidth: 520, aspectRatio: "1 / 1", margin: "0 auto" }}>
+        <Suspense fallback={<div style={{ position: "absolute", inset: "8%", borderRadius: "50%", background: "radial-gradient(circle at 35% 30%, #2a5d8f, #0b1f33)" }} />}>
+          <Globe cities={list} isMine={isMine} selected={selected} onSelect={c => c && onPick?.(c)} zoomable={false} touchAction="pan-y" />
+        </Suspense>
+      </div>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16, marginTop: 8, fontSize: 14, color: T.muted }}>
+        <span>{cities ? `${list.length} villes dans le monde` : "Chargement…"}</span>
+        <button onClick={onOpenMap} style={{ background: "none", border: "none", padding: 0, fontSize: 14, color: T.text, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}>Voir la carte</button>
+      </div>
+    </div>
+  );
+}

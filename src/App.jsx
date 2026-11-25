@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import WorldMap, { MapPreview } from "./WorldMap";
+import WorldMap, { HomeGlobe } from "./WorldMap";
 import { ShareBar, SITE_URL, destinationMessage } from "./share";
-import Dashboard from "./Dashboard";
+import Dashboard, { DestinationBanner, departProgress } from "./Dashboard";
 const DOMAIN = "@edu.em-lyon.com";
 
 async function getStats() {
@@ -300,6 +300,37 @@ function Page({ go, registered, width = 440, center = false, children }) {
             </main>
             <Footer go={go} />
           </div>
+        );
+}
+
+// ── Barre d'onglets en bas de l'écran (téléphone) ──
+const NAV_ICONS = {
+    home: "M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z",
+    globe: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm-9 9h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3Z",
+    users: "M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm13 8v-1a4 4 0 0 0-3-3.9M16 4.1a3.5 3.5 0 0 1 0 6.8",
+    user: "M20 21v-1a5 5 0 0 0-5-5H9a5 5 0 0 0-5 5v1M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z",
+    login: "M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3",
+    plus: "M12 5v14M5 12h14",
+};
+function BottomNav({ go, registered, screen, section }) {
+    const items = registered
+          ? [["home", "Accueil", "home", null], ["map", "Carte", "globe", null], ["matches", "Matchs", "users", "matchs"], ["matches", "Profil", "user", "profil"]]
+          : [["home", "Accueil", "home", null], ["map", "Carte", "globe", null], ["lookup", "Connexion", "login", null], ["register", "S'inscrire", "plus", null]];
+    const isActive = (s, sec) => screen === s && (s !== "matches" || (sec === "profil") === (section === "profil"));
+    return (
+          <nav className="tpo-bottomnav" aria-label="Navigation principale">
+            {items.map(([s, label, icon, sec]) => {
+              const on = isActive(s, sec);
+              return (
+                <button key={label} onClick={() => go(s, sec)} aria-current={on ? "page" : undefined}
+                        style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "8px 0 6px", background: "none", border: "none", cursor: "pointer", color: on ? T.navy : T.faint, fontSize: 11, fontWeight: on ? 600 : 400, position: "relative" }}>
+                  {on && <span style={{ position: "absolute", top: 0, width: 24, height: 2, borderRadius: 2, background: T.accent }} />}
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={NAV_ICONS[icon]} /></svg>
+                  {label}
+                </button>
+              );
+            })}
+          </nav>
         );
 }
 
@@ -617,6 +648,10 @@ export default function App() {
     const [destPreview, setDestPreview] = useState({ count: 0, initials: [] });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [mapCities, setMapCities] = useState(null);       // villes de la carte (globe de l'accueil, accroche)
+    const [homeQuery, setHomeQuery] = useState("");
+    const [homePick, setHomePick] = useState(null);         // destination tapée sur l'accueil + aperçu
+    const [dashSection, setDashSection] = useState(null);   // section de « Mon espace » à afficher
 
   useEffect(() => {
         // Reconnexion automatique : jeton gardé sur l'appareil, ou à défaut cookie de session du serveur.
@@ -630,6 +665,10 @@ export default function App() {
                 // On n'oublie la connexion que si le serveur la refuse vraiment (pas sur une panne passagère)
                 if (e.status === 401 || e.status === 404) saveToken(null);
         });
+  }, []);
+
+  useEffect(() => {
+        fetch("/api/map").then(r => (r.ok ? r.json() : Promise.reject())).then(d => setMapCities(d.cities || [])).catch(() => setMapCities([]));
   }, []);
 
   useEffect(() => {
@@ -726,8 +765,9 @@ export default function App() {
   }
 
   // Navigation entre les écrans (en-tête, pied de page, boutons)
-  function go(s) {
+  function go(s, section = null) {
         if (s === "register") setRegStep(1);
+        setDashSection(s === "matches" && section ? { id: section, n: Date.now() } : null);
         if (s === "matches" && !registered) s = "lookup";
         if (s === "lookup" && registered) s = "matches";
         setError(""); setVerifError("");
@@ -745,34 +785,114 @@ export default function App() {
         setRegistered(r => ({ ...r, ...(show !== undefined && { showOnMap: show }), ...(fullName !== undefined && { showFullName: fullName }) }));
   }
 
+  // Chaque écran, puis la barre d'onglets du téléphone
+  const view = (() => {
+  // Accroche de l'accueil : destination tapée ou ville touchée sur le globe
+  function pickHome(d) {
+        const city = (mapCities || []).find(c => c.city === d.city && c.country === d.country);
+        const pick = { dest: d, cityCount: city?.count || 0, schoolCount: 0, initials: [] };
+        setHomeQuery(d.school ? `${d.school} – ${d.city}` : d.city);
+        setHomePick(pick);
+        if (d.school) getDestinationPreview(d.school).then(p => setHomePick(cur => (cur && cur.dest === d ? { ...cur, schoolCount: p.count || 0, initials: p.initials || [] } : cur))).catch(() => {});
+  }
+  // Inscription avec la destination déjà choisie sur l'accueil
+  function startRegister(d) {
+        if (d?.school) setForm(f => ({ ...f, ...pickerState(null), destQuery: `${d.school} – ${d.city}`, destination: { school: d.school, city: d.city, country: d.country } }));
+        go("register");
+  }
+
   // ── HOME ──
-  if (screen === "home") return (
-        <Page go={go} registered={registered} width={1040} center>
-          <div className="tpo-hero">
-            <div>
-              <p style={{ fontSize: 14, color: T.muted, margin: "0 0 20px" }}>emlyon GBBA · Promo 2026–2027</p>
-              <h1 style={{ fontFamily: T.serif, fontSize: "clamp(36px, 5.5vw, 52px)", fontWeight: 600, color: T.text, margin: "0 0 20px", lineHeight: 1.1, letterSpacing: "-0.8px" }}>
-                Tu pars où en échange ?
-              </h1>
-              <p style={{ fontSize: 18, color: T.muted, margin: "0 0 36px", lineHeight: 1.6, maxWidth: 420 }}>
-                Retrouve les étudiants emlyon qui partent au même endroit que toi.
-              </p>
-              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 20 }}>
-                <button onClick={() => go(registered ? "matches" : "register")} style={{ ...btnPrimary(), width: "auto", padding: "14px 28px" }}>{registered ? "Aller à mon espace" : "Trouver mes matchs"}</button>
-                {!registered && (
-                  <button onClick={() => go("lookup")} style={{ background: "none", border: "none", padding: 0, fontSize: 15, color: T.text, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 4 }}>
-                    J'ai déjà un compte
+  if (screen === "home" && registered) {
+        // Accueil personnel : destination, matchs, préparation, globe centré sur sa ville
+        const prog = departProgress(registered);
+        const firstNames = matches.slice(0, 3).map(m => m.firstName).join(", ");
+        const tile = { display: "block", width: "100%", textAlign: "left", padding: "18px 20px", background: T.bgCard, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, cursor: "pointer" };
+        return (
+          <Page go={go} registered={registered} width={1080} center>
+            <div className="tpo-hero">
+              <div>
+                <p style={{ fontSize: 14, color: T.muted, margin: "0 0 6px" }}>Bon retour</p>
+                <h1 style={{ fontFamily: T.serif, fontSize: "clamp(32px, 5vw, 46px)", fontWeight: 600, color: T.text, margin: "0 0 24px", lineHeight: 1.1, letterSpacing: "-0.8px" }}>
+                  Bonjour {registered.firstName}
+                </h1>
+                <DestinationBanner T={T} me={registered} compact />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
+                  <button onClick={() => go("matches", "matchs")} style={tile}>
+                    <span style={{ display: "block", fontSize: 13, color: T.muted }}>Mes matchs</span>
+                    <span style={{ display: "block", fontSize: 28, fontWeight: 600, color: T.text, lineHeight: 1.2, margin: "4px 0" }}>{matches.length}</span>
+                    <span style={{ display: "block", fontSize: 13, color: T.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{matches.length ? firstNames : "Partage le lien à ta promo"}</span>
                   </button>
-                )}
+                  <button onClick={() => go("matches", "depart")} style={tile}>
+                    <span style={{ display: "block", fontSize: 13, color: T.muted }}>Mon départ</span>
+                    <span style={{ display: "block", fontSize: 28, fontWeight: 600, color: T.text, lineHeight: 1.2, margin: "4px 0" }}>{prog.done}<span style={{ fontSize: 16, color: T.faint }}> / {prog.total}</span></span>
+                    <span style={{ display: "block", height: 4, background: T.bgHover, borderRadius: 2, marginTop: 8 }}><span style={{ display: "block", height: 4, width: `${(prog.done / prog.total) * 100}%`, background: T.navy, borderRadius: 2 }} /></span>
+                  </button>
+                </div>
+                <button onClick={() => go("matches")} style={{ ...btnPrimary(), width: "auto", padding: "14px 28px", marginTop: 24 }}>Aller à mon espace</button>
               </div>
-              <p style={{ fontSize: 14, color: T.faint, margin: "36px 0 0" }}>
-                {stats && typeof stats.total === "number" ? `${stats.total} étudiants inscrits · ${stats.countries} pays` : " "}
-              </p>
+              <HomeGlobe T={T} cities={mapCities} myDest={registered.destination} onPick={() => go("map")} onOpenMap={() => go("map")} />
             </div>
-            <MapPreview T={T} onOpen={() => go("map")} />
-          </div>
-        </Page>
-      );
+          </Page>
+        );
+  }
+
+  if (screen === "home") {
+        const pick = homePick;
+        const avatars = pick ? (pick.initials.length ? pick.initials : ["AM", "LB", "TR", "JC", "SD"]).slice(0, Math.min(5, Math.max(pick.cityCount, pick.initials.length))) : [];
+        return (
+          <Page go={go} registered={registered} width={1080} center>
+            <div className="tpo-hero">
+              <div>
+                <p style={{ fontSize: 14, color: T.muted, margin: "0 0 20px" }}>emlyon GBBA · Promo 2026–2027</p>
+                <h1 style={{ fontFamily: T.serif, fontSize: "clamp(36px, 5.5vw, 52px)", fontWeight: 600, color: T.text, margin: "0 0 20px", lineHeight: 1.1, letterSpacing: "-0.8px" }}>
+                  Tu pars où en échange ?
+                </h1>
+                <p style={{ fontSize: 18, color: T.muted, margin: "0 0 28px", lineHeight: 1.6, maxWidth: 440 }}>
+                  Retrouve les étudiants emlyon qui partent au même endroit que toi, en échange ou en stage.
+                </p>
+                <div style={{ maxWidth: 460 }}>
+                  <label style={{ display: "block", fontSize: 14, fontWeight: 500, color: T.text, margin: "0 0 8px" }}>Tape ta destination</label>
+                  <DestSearch value={homeQuery} onChange={v => { setHomeQuery(v); setHomePick(null); }} onSelect={d => pickHome(d)} />
+                  {pick ? (
+                    <div className="tpo-fade" style={{ marginTop: 14, padding: "20px 20px 18px", border: `1px solid ${T.border}`, borderRadius: T.radiusLg, background: T.bgCard }}>
+                      {pick.cityCount > 0 ? (
+                        <>
+                          <div style={{ display: "flex", marginBottom: 12 }}>
+                            {avatars.map((ini, i) => (
+                              <span key={i} aria-hidden="true" style={{ width: 34, height: 34, marginLeft: i ? -8 : 0, borderRadius: "50%", background: T.navy, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 600, filter: "blur(2.5px)", border: "2px solid #fff" }}>{ini}</span>
+                            ))}
+                          </div>
+                          <p style={{ margin: 0, fontSize: 16, color: T.text, lineHeight: 1.5 }}>
+                            <strong style={{ fontWeight: 600 }}>{pick.cityCount} étudiant{pick.cityCount > 1 ? "s" : ""} emlyon</strong> {pick.cityCount > 1 ? "partent" : "part"} à {pick.dest.city}
+                          </p>
+                          {pick.dest.school && pick.schoolCount > 0 && <p style={{ margin: "2px 0 0", fontSize: 14, color: T.muted }}>dont {pick.schoolCount} à {pick.dest.school}</p>}
+                        </>
+                      ) : (
+                        <p style={{ margin: 0, fontSize: 16, color: T.text, lineHeight: 1.5 }}>Personne n'est encore inscrit à {pick.dest.city}. Sois le premier : on te prévient dès que quelqu'un te rejoint.</p>
+                      )}
+                      <button onClick={() => startRegister(pick.dest)} style={{ ...btnPrimary(), marginTop: 16 }}>
+                        {pick.cityCount > 0 ? "Voir qui part" : "M'inscrire"}
+                      </button>
+                      <p style={{ margin: "10px 0 0", fontSize: 13, color: T.faint, textAlign: "center" }}>1 minute, avec ton adresse emlyon</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 20, marginTop: 18 }}>
+                      <button onClick={() => go("register")} style={{ ...btnPrimary(), width: "auto", padding: "14px 28px" }}>Trouver mes matchs</button>
+                      <button onClick={() => go("lookup")} style={{ background: "none", border: "none", padding: 0, fontSize: 15, color: T.text, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 4 }}>
+                        J'ai déjà un compte
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <p style={{ fontSize: 14, color: T.faint, margin: "28px 0 0" }}>
+                  {stats && typeof stats.total === "number" ? `${stats.total} étudiants inscrits · ${stats.countries} pays` : " "}
+                </p>
+              </div>
+              <HomeGlobe T={T} cities={mapCities} focus={pick?.dest || null} onPick={c => pickHome({ city: c.city, country: c.country })} onOpenMap={() => go("map")} />
+            </div>
+          </Page>
+        );
+  }
 
   // ── REGISTER ──
   const stepHeader = (n, title, sub) => (
@@ -951,7 +1071,7 @@ export default function App() {
     // ── MON ESPACE (étudiant connecté) ──
     if (screen === "matches" && registered) return (
           <Page go={go} registered={registered} width={1040}>
-            <Dashboard T={T} me={registered} matches={matches} go={go}
+            <Dashboard T={T} me={registered} matches={matches} go={go} initialSection={dashSection}
                        StudentCard={StudentCard} ShareBar={ShareBar} ProfileForm={ProfileForm}
                        onMapSettings={saveMapSettings}
                        onSaveProfile={async f => {
@@ -1012,4 +1132,12 @@ if (screen === "map") {
         );
   
     return null;
+  })();
+
+  return (
+        <>
+          {view}
+          <BottomNav go={go} registered={registered} screen={screen} section={dashSection?.id} />
+        </>
+      );
 }
