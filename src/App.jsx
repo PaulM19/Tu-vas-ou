@@ -963,7 +963,7 @@ export default function App() {
                          setMatches(data.matches || []);
                        }}
                        shareProps={{ url: SITE_URL, message: destinationMessage(registered.destination, registered.semester), title: "Plus on est d'inscrits, plus tu as de matchs", subtitle: "Envoie le lien dans ton groupe de promo." }}
-                       onLogout={() => { fetch("/api/logout", { method: "POST" }).catch(() => {}); saveToken(null); setToken(null); setRegistered(null); setMatches([]); setScreen("home"); window.scrollTo(0, 0); }}
+                       onLogout={() => { fetch("/api/matches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ logout: true }) }).catch(() => {}); saveToken(null); setToken(null); setRegistered(null); setMatches([]); setScreen("home"); window.scrollTo(0, 0); }}
                        onDelete={async () => {
                          try {
                            const res = await fetch("/api/delete-me", { method: "POST", headers: authHeaders(token), body: "{}" });

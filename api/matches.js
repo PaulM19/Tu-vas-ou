@@ -1,8 +1,15 @@
-import { requireUser, signSession, setSessionCookie } from "./_lib/auth.js";
+import { requireUser, signSession, setSessionCookie, clearSessionCookie } from "./_lib/auth.js";
 import { sbFetch, shapeMe, findMatches } from "./_lib/students.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
+
+  // Déconnexion : efface le cookie de session sur cet appareil.
+  // (Gérée ici plutôt que dans une route à part : l'offre gratuite de Vercel limite à 12 fonctions.)
+  if (req.body?.logout === true) {
+    clearSessionCookie(res);
+    return res.status(200).json({ ok: true });
+  }
 
   // L'email vient du jeton de session signé, jamais du corps de la requête.
   const cleanEmail = requireUser(req, res);
